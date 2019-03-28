@@ -1,6 +1,7 @@
 import time
 import asyncio
 import math
+from pprint import pprint
 from seneca.engine.interpreter.executor import Executor
 from cilantro_ee.logger import get_logger
 from cilantro_ee.constants.zmq_filters import *
@@ -58,6 +59,10 @@ class CatchupManager:
         self.curr_hash, self.curr_num = StateDriver.get_latest_block_info()
         self.target_blk_num = self.curr_num
         self.awaited_blknum = None
+
+    def __repr__(self):
+        return "CatchupManager({})".format(pprint(self.__dict__))
+#        return "{self.__class__.__name__}({})".format(pprint(self.__dict__))
 
     def update_state(self):
         """
@@ -188,7 +193,8 @@ class CatchupManager:
         self.log.important2("tmp list -> {}".format(tmp_list))
         self.new_target_blk_num = tmp_list[-1].get('blockNum')
         new_blks = self.new_target_blk_num - self.target_blk_num
-
+        self.log.debugv("new target block num {}\ntarget block num {}\ntemp list {}"
+                        .format(self.new_target_blk_num, self.target_blk_num, tmp_list))
         if new_blks > 0:
             self.target_blk_num = self.new_target_blk_num
             update_list = tmp_list[-new_blks:]
@@ -204,8 +210,8 @@ class CatchupManager:
                 self.process_recv_idx()
 
         self.node_idx_reply_set.add(sender_vk)
-        self.log.debugv("new target block num {}\ntarget block num {}\ntemp list {}"
-                        .format(self.new_target_blk_num, self.target_blk_num, tmp_list))
+        self.log.debugv("Node Set -> {}"
+                        .format(self.node_idx_reply_set))
         self.dump_debug_info(lnum = 195)
 
     def recv_block_idx_reply(self, sender_vk: str, reply: BlockIndexReply):
@@ -388,6 +394,7 @@ class CatchupManager:
     def _check_idx_reply_quorum(self):
         # We have enough BlockIndexReplies if 2/3 of Masternodes replied
         min_quorum = math.ceil(len(VKBook.get_masternodes()) * 2/3)
+        self.log.debugv("Tot Masters - {} Min Quorum {}".format(len(VKBook.get_masternodes()), min_quorum))
         if self.store_full_blocks:
             min_quorum -= 1   # -1 so we dont include ourselves if we are a MN
         return len(self.node_idx_reply_set) >= min_quorum
