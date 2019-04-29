@@ -1,5 +1,4 @@
 from cilantro_ee.logger.base import get_logger
-from seneca.execution.executor import Executor
 from cilantro_ee.messages.transaction.contract import ContractTransaction
 from cilantro_ee.messages.transaction.publish import PublishTransaction
 from cilantro_ee.messages.block_data.block_data import GENESIS_BLOCK_HASH, BlockData

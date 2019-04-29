@@ -6,10 +6,10 @@ from cilantro_ee.constants.system_config import *
 from cilantro_ee.utils.utils import int_to_bytes, bytes_to_int
 from cilantro_ee.utils.hasher import Hasher
 #
-from seneca.parallelism.conflict_resolution import CRContext
+# from seneca.db.cr.conflict_resolution import CRContext
 #
-from cilantro_ee.nodes.delegate.block_manager import IPC_IP, IPC_PORT
-from cilantro_ee.nodes.delegate.sub_block_builder import SubBlockBuilder, SubBlockManager
+# from cilantro_ee.nodes.delegate.block_manager import IPC_IP, IPC_PORT
+from cilantro_ee.nodes.delegate.sub_block_builder import SubBlockBuilder, SubBlockManager, NextBlockState
 #
 from cilantro_ee.messages.base.base import MessageBase
 from cilantro_ee.messages.transaction.batch import TransactionBatch, build_test_transaction_batch
@@ -17,6 +17,7 @@ from cilantro_ee.messages.consensus.sub_block_contender import SubBlockContender
 from cilantro_ee.messages.transaction.data import TransactionData, TransactionDataBuilder
 from cilantro_ee.messages.transaction.contract import ContractTransactionBuilder
 from cilantro_ee.messages.signals.delegate import MakeNextBlock
+from cilantro_ee.messages.consensus.align_input_hash import AlignInputHash
 #
 from unittest import TestCase
 from unittest import mock
@@ -252,6 +253,80 @@ class TestSubBlockBuilder(TestCase):
 
         # TODO assert tis was called with the expected SBC passed in
         sbb._send_msg_over_ipc.assert_called()
+
+
+    @SBBTester.test
+    @mock.patch("cilantro_ee.nodes.delegate.sub_block_builder.NUM_SUB_BLOCKS", 1)
+    @mock.patch("cilantro_ee.nodes.delegate.sub_block_builder.NUM_BLOCKS", 1)
+    @mock.patch("cilantro_ee.nodes.delegate.sub_block_builder.NUM_SB_BUILDERS", 1)
+    @mock.patch("cilantro_ee.nodes.delegate.sub_block_builder.NUM_SB_PER_BUILDER", 1)
+    @mock.patch("cilantro_ee.nodes.delegate.sub_block_builder.NUM_SB_PER_BLOCK_PER_BUILDER", 1)
+    @mock.patch("cilantro_ee.nodes.delegate.sub_block_builder.TRANSACTIONS_PER_SUB_BLOCK", 4)
+    @mock.patch("cilantro_ee.messages.block_data.block_metadata.NUM_SB_PER_BLOCK", 1)
+    def test_blk_notification_handler(self, *args):
+        sbb = SubBlockBuilder(ip=TEST_IP, signing_key=DELEGATE_SK, sbb_index=0, ipc_ip=IPC_IP, ipc_port=IPC_PORT)
+        self.assertEquals(len(sbb.sb_managers), 1)
+        sbb._send_msg_over_ipc = MagicMock()
+        sbb._execute_next_sb = MagicMock()
+
+# mock ipc send and recv
+# first blk - pretend that you got a and observe that state updated to a and observe you got next blk w/ b
+# pretend you have empty blk. observe that your state is still at a, but you have new blk with c/
+# pretend a non-agreed blk notificat w/ d. observe that c and d are flushed out from input bags
+# pretend that you caught up - then observe next blk with e
+# pretend you got a truly failed (non-consensus) blk (in future, BA should give us more info on where non-consensus), but for now, throw away that bag and aligh your inputs if needed and observe next blk with f
+
+        # send it 6 blocks w/ 4 txns each except second block (index = 1) is empty
+        for i in range(6):
+            num_txs = 0 if i == 1 else 4
+            tx_batch = SBBTester.create_tx_batch_env(num_txs=num_txs, env_signing_key=MN_SK1)
+            input_hash = Hasher.hash(tx_batch)
+            print("rpc 1:{} {}".format(i, input_hash))
+            SBBTester.send_sub_to_sbb(sbb, envelope=tx_batch, handler_key=0)
+
+        self.assertEqual(len(sbb.sb_managers[0].pending_txs), 6)
+        ib_hashes = []
+        for i in range(6):
+            ib_hash = sbb.sb_managers[0].pending_txs.getKeyAt(i)
+            print("rpc 2:{} {}".format(i, ib_hash))
+            ib_hashes.append(ib_hash)
+    
+
+        # Now, send a MakeNextBlock notif. This should trigger an empty subblock to be built and sent over IPC to BM
+        make_next_block = MakeNextBlock.create()
+        SBBTester.send_ipc_to_sbb(sbb, make_next_block)
+
+        sbb._execute_next_sb.assert_called()
+        ih = sbb._execute_next_sb.call_args[0][0]
+        self.assertEqual(ih, ib_hashes[0])
+        sbb._next_block_to_make.state = NextBlockState.PROCESSED
+
+        SBBTester.send_ipc_to_sbb(sbb, make_next_block)
+        sbb._execute_next_sb.assert_called()
+        ih = sbb._execute_next_sb.call_args[0][0]
+        self.assertEqual(ih, ib_hashes[1])
+        sbb._next_block_to_make.state = NextBlockState.PROCESSED
+
+        message = AlignInputHash.create(ib_hashes[3])
+        SBBTester.send_ipc_to_sbb(sbb, message)
+        sbb._execute_next_sb.assert_called()
+        ih = sbb._execute_next_sb.call_args[0][0]
+        self.assertEqual(ih, ib_hashes[4])
+        sbb._next_block_to_make.state = NextBlockState.PROCESSED
+
+        # sbb._send_msg_over_ipc.assert_called()
+        # sbc = sbb._send_msg_over_ipc.call_args[0][0]
+        # self.assertTrue(isinstance(sbc, SubBlockContender))
+        # self.assertEqual(empty_sbc.input_hash, input_hash)
+        # self.assertEqual(empty_sbc.sb_index, sbb_idx)
+        # self.assertTrue(empty_sbc.is_empty)
+        # should receive a new subblock for input 0 and assert its input_hash is same as the one above
+        # send newblk notification
+        # should receive a new subblock for input 1 and assert its input_hash is same as the one above
+        # send skip notification
+        # have a new block for input 2
+        # send failedblk notification w input 3  - should purge 2, 3 and wait
+        # send makenext block - observe new block for input 4
 
 
 if __name__ == "__main__":

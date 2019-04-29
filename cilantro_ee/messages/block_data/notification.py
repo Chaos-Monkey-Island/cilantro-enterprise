@@ -75,8 +75,11 @@ class NewBlockNotification(BlockNotification):
 class EmptyBlockNotification(BlockNotification):
     pass
 
-# turn input_hashes as list of lists for this
 class FailedBlockNotification(BlockNotification):
+    pass
+
+class PartialBlockNotification(BlockNotification):
+    # Todo need to add failed_input_hashes as list[set]
     pass
 
 class BlockNotificationBuilder:
