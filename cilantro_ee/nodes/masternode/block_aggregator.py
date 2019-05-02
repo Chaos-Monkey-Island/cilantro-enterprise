@@ -16,7 +16,7 @@ from cilantro_ee.messages.envelope.envelope import Envelope
 from cilantro_ee.messages.consensus.sub_block_contender import SubBlockContender
 from cilantro_ee.messages.block_data.sub_block import SubBlock
 from cilantro_ee.messages.block_data.state_update import *
-from cilantro_ee.messages.block_data.block_metadata import NewBlockNotification, SkipBlockNotification
+from cilantro_ee.messages.block_data.notification import NewBlockNotification, SkipBlockNotification
 from cilantro_ee.messages.signals.master import EmptyBlockMade, NonEmptyBlockMade
 
 from typing import List
@@ -234,8 +234,9 @@ class BlockAggregator(Worker):
     def send_new_block_notif(self, block_data: BlockData):
         message = NonEmptyBlockMade.create()
         self._send_msg_over_ipc(message=message)
-        new_block_notif = NewBlockNotification.create_from_block_data(block_data)
-        # sleep a bit so slower nodes don't have to constantly use catchup mgr 
+        new_block_notif = NewBlockNotification.create(block_data.prev_block_hash, block_data.block_hash, block_data.block_num,
+                                                      block_data.block_owners, block_data.input_hashes)
+        # sleep a bit so slower nodes don't have to constantly use catchup mgr ? should this be really at receiving side?
         time.sleep(0.1)
         self.pub.send_msg(msg=new_block_notif, header=NEW_BLK_NOTIF_FILTER.encode())
         self.log.info('Published new block notif with hash "{}" and prev hash {}'
@@ -244,7 +245,8 @@ class BlockAggregator(Worker):
     def send_skip_block_notif(self, sub_blocks: List[SubBlock]):
         message = EmptyBlockMade.create()
         self._send_msg_over_ipc(message=message)
-        skip_notif = SkipBlockNotification.create_from_sub_blocks(self.curr_block_hash, StateDriver.get_latest_block_num()+1, sub_blocks)
+        skip_notif = SkipBlockNotification.create_from_sub_blocks(self.curr_block_hash,
+                                                                  StateDriver.get_latest_block_num()+1, [], sub_blocks)
         self.pub.send_msg(msg=skip_notif, header=DEFAULT_FILTER.encode())
         self.log.debugv("Send skip block notification for prev hash {}".format(self.curr_block_hash))
 

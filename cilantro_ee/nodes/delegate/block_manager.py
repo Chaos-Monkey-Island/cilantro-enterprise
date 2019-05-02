@@ -34,7 +34,8 @@ from cilantro_ee.messages.block_data.block_data import BlockData
 from cilantro_ee.messages.base.base import MessageBase
 from cilantro_ee.messages.envelope.envelope import Envelope
 from cilantro_ee.messages.block_data.state_update import *
-from cilantro_ee.messages.block_data.block_metadata import NewBlockNotification, SkipBlockNotification, BlockMetaData
+from cilantro_ee.messages.block_data.block_metadata import BlockMetaData
+from cilantro_ee.messages.block_data.notification import NewBlockNotification, SkipBlockNotification
 from cilantro_ee.messages.consensus.sub_block_contender import SubBlockContender
 from cilantro_ee.messages.consensus.align_input_hash import AlignInputHash
 from cilantro_ee.messages.signals.delegate import MakeNextBlock, DiscardPrevBlock
