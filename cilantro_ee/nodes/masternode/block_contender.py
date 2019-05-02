@@ -5,7 +5,7 @@ from cilantro_ee.constants.system_config import *
 
 from cilantro_ee.messages.consensus.sub_block_contender import SubBlockContender
 from cilantro_ee.messages.block_data.sub_block import SubBlock
-from cilantro_ee.messages.block_data.state_update import FailedBlockNotification
+from cilantro_ee.messages.block_data.notification import FailedBlockNotification
 
 from collections import defaultdict
 from typing import List

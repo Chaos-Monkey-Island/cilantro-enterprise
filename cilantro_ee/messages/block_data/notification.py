@@ -5,7 +5,7 @@ from cilantro_ee.messages.utils import validate_hex
 from cilantro_ee.messages.block_data.block_data import BlockData
 from typing import List
 
-import blockdata_capnp
+import notification_capnp
 
 
 class BlockNotification(MessageBase):
@@ -22,18 +22,18 @@ class ConsensusBlockNotification(BlockNotification):
 
     @classmethod
     def _deserialize_data(cls, data):
-        return blockdata_capnp.ConsensusBlockNotification.from_bytes_packed(data)
+        return notification_capnp.ConsensusBlockNotification.from_bytes_packed(data)
 
     @classmethod
     def from_dict(cls, data: dict):
-        struct = blockdata_capnp.ConsensusBlockNotification.new_message(**data)
+        struct = notification_capnp.ConsensusBlockNotification.new_message(**data)
         return cls.from_data(struct)
 
     @classmethod
     def create(cls, prev_block_hash: str, block_hash: str, block_num: int,
                     block_owners: List[str], input_hashes: List[str]):
 
-        struct = blockdata_capnp.ConsensusBlockNotification.new_message()
+        struct = notification_capnp.ConsensusBlockNotification.new_message()
         struct.prevBlockHash = prev_block_hash
         struct.blockHash = block_hash
         struct.blockNum = block_num
@@ -99,8 +99,46 @@ class SkipBlockNotification(ConsensusBlockNotification):
     pass
 
 class FailedBlockNotification(BlockNotification):
-    # list of lists of input_hashes only
-    pass
+
+    def validate(self):
+        # TODO clean this up, do we really need validations in our notification system?
+        # 
+        assert validate_hex(self._data.prevBlockHash, 64), 'Invalid previous block hash'
+        assert len(self.input_hashes) == NUM_SUB_BLOCKS, "Length of input hashes list {} does not match number of " \
+                                                         "sub-blocks {}".format(len(self.input_hashes), NUM_SUB_BLOCKS)
+        for s in self.input_hashes:
+            for ih in s:
+                assert is_valid_hex(ih), "Not valid input hash: {}".format(ih)
+
+
+    @classmethod
+    def _deserialize_data(cls, data):
+        return notification_capnp.FailedBlockNotification.from_bytes_packed(data)
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        struct = notification_capnp.FailedBlockNotification.new_message(**data)
+        return cls.from_data(struct)
+
+    @classmethod
+    def create(cls, prev_block_hash: str, input_hashes: List[List]):
+
+        struct = notification_capnp.FailedBlockNotification.new_message()
+        struct.prevBlockHash = prev_block_hash
+        struct.inputHashes = input_hashes
+
+        return cls.from_data(struct, False)    # no validation
+
+
+    @property
+    def prev_block_hash(self):
+        return self._data.prevBlockHash
+
+    @lazy_property
+    def input_hashes(self) -> List[List]:
+        return [x for x in self._data.inputHashes]  # Necessary to cast capnp list builder to Python list
+
+
 
 class PartialBlockNotification(ConsensusBlockNotification, FailedBlockNotification):
     # Todo need to add failed_input_hashes as list[list]

@@ -16,7 +16,7 @@ from cilantro_ee.messages.envelope.envelope import Envelope
 from cilantro_ee.messages.consensus.sub_block_contender import SubBlockContender
 from cilantro_ee.messages.block_data.sub_block import SubBlock
 from cilantro_ee.messages.block_data.state_update import *
-from cilantro_ee.messages.block_data.notification import NewBlockNotification, SkipBlockNotification
+from cilantro_ee.messages.block_data.notification import NewBlockNotification, SkipBlockNotification, FailedBlockNotification
 from cilantro_ee.messages.signals.master import EmptyBlockMade, NonEmptyBlockMade
 
 from typing import List

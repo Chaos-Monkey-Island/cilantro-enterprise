@@ -12,7 +12,7 @@ from cilantro_ee.storage.mongo import MDB
 
 from cilantro_ee.messages.block_data.block_data import *
 from cilantro_ee.messages.block_data.state_update import *
-from cilantro_ee.messages.block_data.block_metadata import *
+from cilantro_ee.messages.block_data.notification import *
 import asyncio, time
 from cilantro_ee.protocol import wallet
 
@@ -302,7 +302,9 @@ class TestCatchupManager(TestCase):
         self.assertFalse(cm.is_catchup_done())
 
         # Now, send a NewBlockNotification from a new hash/num, and make sure things worked propperly
-        new_block_notif = NewBlockNotification.create_from_block_data(blocks[-1])
+        blk = blocks[-1]
+        new_block_notif = NewBlockNotification.create(blk.prev_block_hash, blk.block_hash, blk.block_num,
+                                                      blk.block_owners, blk.input_hashes)
         cm.recv_new_blk_notif(new_block_notif)
 
         self.assertFalse(cm.is_catchup_done())
@@ -357,7 +359,9 @@ class TestCatchupManager(TestCase):
         self.assertTrue(cm.is_catchup_done())
 
         # Now, send a NewBlockNotification from a new hash/num, and make sure things worked propperly
-        new_block_notif = NewBlockNotification.create_from_block_data(blocks[-1])
+        blk = blocks[-1]
+        new_block_notif = NewBlockNotification.create(blk.prev_block_hash, blk.block_hash, blk.block_num,
+                                                      blk.block_owners, blk.input_hashes)
 
         cm.recv_new_blk_notif(new_block_notif)
         self.assertFalse(cm.is_catchup_done())
@@ -609,7 +613,9 @@ class TestCatchupManager(TestCase):
         for block in blocks:
             bd_copy = BlockData.from_bytes(block.serialize())
             reply_datas.append(BlockDataReply.create_from_block(bd_copy))
-            new_block_notifs.append(NewBlockNotification.create_from_block_data(block))
+            new_block_notif = NewBlockNotification.create(block.prev_block_hash, block.block_hash, block.block_num,
+                                                          block.block_owners, block.input_hashes)
+            new_block_notifs.append(new_block_notif)
 
         # Send the BlockIndexReplies (1 extra)
 
