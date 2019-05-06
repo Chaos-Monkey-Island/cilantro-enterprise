@@ -34,7 +34,6 @@ from cilantro_ee.messages.block_data.block_data import BlockData
 from cilantro_ee.messages.base.base import MessageBase
 from cilantro_ee.messages.envelope.envelope import Envelope
 from cilantro_ee.messages.block_data.state_update import *
-from cilantro_ee.messages.block_data.block_metadata import BlockMetaData
 from cilantro_ee.messages.block_data.notification import NewBlockNotification, SkipBlockNotification
 from cilantro_ee.messages.consensus.sub_block_contender import SubBlockContender
 from cilantro_ee.messages.consensus.align_input_hash import AlignInputHash
@@ -280,7 +279,7 @@ class BlockManager(Worker):
         if self.db_state.catchup_mgr.recv_block_idx_reply(sender, reply):
             self.set_catchup_done()
 
-    def recv_block_notif(self, block: BlockMetaData):
+    def recv_block_notif(self, block: BlockNotification):
         self.db_state.is_catchup_done = False
         # TODO call run_catchup() if catchup_manager is not already catching up
         if self.db_state.catchup_mgr.recv_new_blk_notif(block):
@@ -341,7 +340,7 @@ class BlockManager(Worker):
         message_type = MessageBase.registry[type(message)]  # this is an int (enum) denoting the class of message
         self.ipc_router.send_multipart([id_frame, int_to_bytes(message_type), message.serialize()])
 
-    def send_input_align_msg(self, block: BlockMetaData):
+    def send_input_align_msg(self, block: BlockNotification):
         self.log.info("Sending AlignInputHash message to SBBs")
         for i, sb in enumerate(block.sub_blocks):
             # Note: NUM_SB_BUILDERS may not be same as num sub-blocks per block. For anarchy net, it's same
@@ -392,7 +391,7 @@ class BlockManager(Worker):
         self.db_state.reset()
 
     # update current db state to the new block
-    def handle_block_notification(self, block_data: BlockMetaData, is_new_block: bool):
+    def handle_block_notification(self, block_data: BlockNotification, is_new_block: bool):
         new_block_hash = block_data.block_hash
         self.log.notice("Got {} block notification {}".format("new" if is_new_block else "empty", block_data))
 
