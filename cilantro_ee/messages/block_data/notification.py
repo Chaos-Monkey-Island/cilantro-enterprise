@@ -104,11 +104,11 @@ class FailedBlockNotification(BlockNotification):
         # TODO clean this up, do we really need validations in our notification system?
         # 
         assert validate_hex(self._data.prevBlockHash, 64), 'Invalid previous block hash'
-        assert len(self.input_hashes) == NUM_SUB_BLOCKS, "Length of input hashes list {} does not match number of " \
-                                                         "sub-blocks {}".format(len(self.input_hashes), NUM_SUB_BLOCKS)
-        for s in self.input_hashes:
-            for ih in s:
-                assert is_valid_hex(ih), "Not valid input hash: {}".format(ih)
+        # assert len(self.input_hashes) == NUM_SUB_BLOCKS, "Length of input hashes list {} does not match number of " \
+                                                         # "sub-blocks {}".format(len(self.input_hashes), NUM_SUB_BLOCKS)
+        # for s in self.input_hashes:
+            # for ih in s:
+                # assert is_valid_hex(ih), "Not valid input hash: {}".format(ih)
 
 
     @classmethod

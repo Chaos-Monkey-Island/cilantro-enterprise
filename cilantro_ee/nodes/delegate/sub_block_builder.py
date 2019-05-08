@@ -25,12 +25,13 @@ from cilantro_ee.constants.conf import CilantroConf
 
 from cilantro_ee.messages.base.base import MessageBase
 from cilantro_ee.messages.envelope.envelope import Envelope
-from cilantro_ee.messages.block_data.state_update import *
+# from cilantro_ee.messages.block_data.state_update import *
 from cilantro_ee.messages.consensus.merkle_signature import MerkleSignature
 from cilantro_ee.messages.consensus.sub_block_contender import SubBlockContender
 from cilantro_ee.messages.consensus.align_input_hash import AlignInputHash
 from cilantro_ee.messages.transaction.batch import TransactionBatch
 from cilantro_ee.messages.transaction.data import TransactionData, TransactionDataBuilder
+from cilantro_ee.messages.block_data.notification import FailedBlockNotification
 from cilantro_ee.messages.signals.delegate import MakeNextBlock, DiscardPrevBlock
 from cilantro_ee.messages.signals.node import Ready
 
