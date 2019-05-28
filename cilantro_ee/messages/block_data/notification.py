@@ -139,6 +139,9 @@ class FailedBlockNotification(BlockNotification):
         return [x for x in self._data.inputHashes]  # Necessary to cast capnp list builder to Python list
 
 
+class TimeoutBlockNotification(FailedBlockNotification):
+    pass
+
 
 class PartialBlockNotification(ConsensusBlockNotification, FailedBlockNotification):
     # Todo need to add failed_input_hashes as list[list]
