@@ -579,6 +579,7 @@ class TestSubBlockBuilder(TestCase):
         ffih.append(fih)
         message = FailedBlockNotification.create(ib_hashes[4], ffih)
         SBBTester.send_ipc_to_sbb(sbb, message)
+        SBBTester.send_ipc_to_sbb(sbb, make_next_block)
         self.run_async(sbb.loop, 2)
         # should receive a new subblock for input 5
         sbb._create_sbc_from_batch.assert_called()
