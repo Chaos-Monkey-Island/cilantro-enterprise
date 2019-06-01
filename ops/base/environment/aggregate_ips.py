@@ -78,6 +78,15 @@ if __name__ == "__main__":
 
     assert len(vk_ip) == len(ip_files), "ya done goofed davis\nvk_ip: {}\nip_files: \n".format(vk_ip, ip_files)
 
+    # additional vk_ips here
+    addtl_vk_ip = {}
+    ip_file = os.path.join(my_path, "additional_vk_ip.json")
+    with open(ip_file, "r") as af:
+        addtl_vk_ip = json.load(af)
+
+    for vk, ip in addtl_vk_ip.items():
+        vk_ip[vk] = ip
+
     # print("\n\n\n WE GOT VK IP DICT:\n{}\n\n\n".format(vk_ip))
     # Now actually write the file...
     vk_json = os.path.join(my_path, 'conf/{}{}/vk_ip_map.json'.format(args.type, args.index))
