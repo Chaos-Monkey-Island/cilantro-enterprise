@@ -3,9 +3,12 @@ from cilantro_ee.logger import get_logger
 from cilantro_ee.utils.utils import is_valid_hex
 from cilantro_ee.constants.conf import CilantroConf
 from collections import defaultdict
+from contracting.client import ContractingClient
 
 log = get_logger("VKBook")
+client = ContractingClient()
 
+vk_book_contract = client.get_contract('vkbook')
 
 class VKBookMeta(type):
     vkbooks = {}
@@ -129,15 +132,15 @@ class VKBook(metaclass=VKBookMeta):
 
     @classmethod
     def get_masternodes(cls) -> list:
-        return cls.book['masternodes']
+        return vk_book_contract.get_masternodes()
 
     @classmethod
     def get_witnesses(cls) -> list:
-        return cls.book['witnesses']
+        return vk_book_contract.get_witnesses()
 
     @classmethod
     def get_delegates(cls) -> list:
-        return cls.book['delegates']
+        return vk_book_contract.get_delegates()
 
     @classmethod
     def get_schedulers(cls) -> list:
@@ -172,20 +175,3 @@ class VKBook(metaclass=VKBookMeta):
         TransactionBatcher socket) """
         assert vk in cls.delegate_mn_map, "Delegate VK {} not found in delegate_mn_map {}".format(vk, cls.delegate_mn_map)
         return cls.delegate_mn_map[vk]
-
-    # @classmethod
-    # def _build_mn_witness_maps(cls):
-    #     r = 1
-    #     for i, mn_vk in enumerate(VKBook.get_masternodes()):
-    #         witnesses = VKBook.get_witnesses()[i * r:i * r + r]
-    #         delegates = VKBook.get_delegates()[i * r:i * r + r]
-    #
-    #         for w in delegates:
-    #             cls.delegate_mn_map[w] = mn_vk
-    #
-    #         for w in witnesses:
-    #             cls.witness_mn_map[w] = mn_vk
-    #
-    #     # TODO remove
-    #     log.notice("DELEGATE_MN_MAP: {}".format(cls.delegate_mn_map))
-    #     log.notice("WITNESS_MN_MAP: {}".format(cls.witness_mn_map))
