@@ -4,11 +4,18 @@ from cilantro_ee.utils.utils import is_valid_hex
 from cilantro_ee.constants.conf import CilantroConf
 from collections import defaultdict
 from contracting.client import ContractingClient
+from cilantro_ee.contracts.sync import sync_genesis_contracts
 
 log = get_logger("VKBook")
-client = ContractingClient()
 
+# Make sure that the contracts have been synced to state
+sync_genesis_contracts()
+
+# Then we can read the vkbook from it.
+# This should be instead information gotten from a bootnode or the blockchain itself in the future
+client = ContractingClient()
 vk_book_contract = client.get_contract('vkbook')
+print(vk_book_contract.__code__)
 
 class VKBookMeta(type):
     vkbooks = {}
