@@ -53,14 +53,13 @@ CUSTOM_LVL = {
     'DEBUG3': 15,
     'DEBUG2': 16,
     'DEBUG1': 17,
-    'DEBUGV': 21,
-    'NOTICE': 22,
+    'NOTICE': 21,
+    'DEBUGV': 22,
     'FATAL': 99
     }
 
 DEPRECATED_LEVELS = {
     'SOCKET': 23,
-    'NOTICE': 24,
     'SUCCESS': 26,
     'SUCCESS2': 27,
     'IMPORTANT': 56,
@@ -69,21 +68,6 @@ DEPRECATED_LEVELS = {
 }
 
 CUSTOM_LEVELS = {**CUSTOM_LVL, **DEPRECATED_LEVELS}
-
-
-# CUSTOM_LEVELS = {
-#     'SPAM': 12,
-#     'DEBUGV': 13,
-#     'SOCKET': 23,
-#     'NOTICE': 24,
-#     'SUCCESS': 26,
-#     'SUCCESS2': 27,
-#     'IMPORTANT': 56,
-#     'IMPORTANT2': 57,
-#     'IMPORTANT3': 58,
-#     'FATAL': 9001,
-#     'TEST': 9002,
-#     }
 
 for log_name, log_level in CUSTOM_LEVELS.items():
     logging.addLevelName(log_level, log_name)
