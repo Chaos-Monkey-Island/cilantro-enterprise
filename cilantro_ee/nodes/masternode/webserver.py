@@ -8,7 +8,6 @@ from sanic.exceptions import SanicException
 
 from secure import SecureHeaders
 
-from cilantro_ee.storage.driver import SafeDriver
 from cilantro_ee.messages.transaction.contract import ContractTransaction
 from cilantro_ee.messages.transaction.publish import PublishTransaction
 from cilantro_ee.messages.transaction.container import TransactionContainer
@@ -21,13 +20,11 @@ from cilantro_ee.constants.masternode import NUM_WORKERS
 from cilantro_ee.constants import conf
 
 from cilantro_ee.utils.hasher import Hasher
-from contracting.config import DELIMITER
 
 from multiprocessing import Queue
 import os, time
 
 from cilantro_ee.storage.master import MasterStorage
-from cilantro_ee.protocol.webserver.validation import *
 
 import json as _json
 
@@ -64,14 +61,6 @@ def _respond_to_request(payload, headers={}, status=200, resptype='json'):
         return json(payload, headers=dict(headers, **static_headers), status=status)
     elif resptype == 'text':
         return text(payload, headers=dict(headers, **static_headers), status=status)
-
-
-def _get_contract_obj(contract):
-    contract_name = validate_contract_name(contract)
-    contract_obj = ex.get_contract(contract_name)
-    if contract_obj.get('code_obj'):
-        del contract_obj['code_obj']
-    return contract_obj
 
 
 @app.exception(SanicException)
@@ -113,12 +102,14 @@ async def submit_transaction(request):
 
     # TODO @faclon why do we need this if we check the queue at the start of this func? --davis
     ord_container = OrderingContainer.create(tx)
-    try: app.queue.put_nowait(ord_container.serialize())
-    except: return _respond_to_request({'error': "Queue full! Cannot process any more requests"}, status=503)
+    try:
+        app.queue.put_nowait(ord_container.serialize())
+    except:
+        return _respond_to_request({'error': "Queue full! Cannot process any more requests"}, status=503)
 
     # Return transaction hash and nonce to users (not sure which they will need) --davis
-    return _respond_to_request({'success': 'Transaction successfully submitted to the network.',
-                 'nonce': tx.nonce, 'hash': Hasher.hash(tx)})
+    return _respond_to_request({'success': 'Transaction successfully submitted to the network.', 'nonce': tx.nonce,
+                                'hash': Hasher.hash(tx)})
 
 
 @app.route("/nonce", methods=['GET',"OPTIONS",])
@@ -130,75 +121,6 @@ async def request_nonce(request):
     nonce = NonceManager.create_nonce(user_vk)
     log.spam("Creating nonce {}".format(nonce))
     return _respond_to_request({'success': True, 'nonce': nonce})
-
-
-@app.route("/contracts", methods=["GET","OPTIONS",])
-async def get_contracts(request):
-    r = SafeDriver.xscan('kv', 'contracts:*')[1]
-    result = {}
-    r_str = [_r.decode().split(DELIMITER)[1] for _r in r]
-    result['contracts'] = sorted(r_str)
-    return _respond_to_request(result)
-
-
-# This is just a test endpoint we use to detect when a web server has come online
-@app.route("/ohai", methods=["GET","OPTIONS",])
-async def ohai(request):
-    return _respond_to_request({'status':'online'})
-
-
-@app.route("/contracts/<contract>", methods=["GET","OPTIONS",])
-async def get_contract(request, contract):
-    return _respond_to_request(_get_contract_obj(contract))
-
-
-@app.route("/contracts/<contract>/resources", methods=["GET","OPTIONS",])
-async def get_contract_resources(request, contract):
-    contract_obj = _get_contract_obj(contract)
-    r = list(contract_obj['resources'].keys())
-    return _respond_to_request({'resources': r})
-
-
-@app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
-async def get_contract_meta(request, contract):
-    contract_obj = _get_contract_obj(contract)
-    return _respond_to_request({'methods': contract_obj['methods']})
-
-
-def get_keys(contract, resource, cursor=0):
-    pattern = '{}:{}:*'.format(contract, resource)
-    keys = SafeDriver.scan(cursor, pattern, 100)
-    _keys = keys[1]
-
-    formatted_keys = [k.decode()[len(pattern) - 1:] for k in _keys]
-
-    return {'cursor': keys[0], 'keys': formatted_keys}
-
-
-@app.route("/contracts/<contract>/<resource>/", methods=["GET","OPTIONS",])
-async def get_contract_resource_keys(request, contract, resource):
-    r = get_keys(contract, resource)
-    return _respond_to_request(r)
-
-
-@app.route("/contracts/<contract>/<resource>/cursor/<cursor>", methods=["GET","OPTIONS",])
-async def get_contract_resource_keys_cursor(request, contract, resource, cursor):
-    r = get_keys(contract, resource, cursor)
-    return _respond_to_request(r)
-
-
-@app.route("/contracts/<contract>/<resource>/<key>", methods=["GET","OPTIONS",])
-async def get_state(request, contract, resource, key):
-    contract_obj = _get_contract_obj(contract)
-    resource_type = contract_obj['resources'].get(resource)
-    value = SafeDriver.get('{}:{}:{}:{}'.format(resource_type, contract, resource, key))
-    r = {}
-    if value is None:
-        r['value'] = 'null'
-    else:
-        r['value'] = value
-
-    return _respond_to_request(r)
 
 
 @app.route("/latest_block", methods=["GET","OPTIONS",])
@@ -268,6 +190,7 @@ async def get_transaction(request):
     tx.pop('transaction', None)
     return _respond_to_request(tx)
 
+
 @app.route('/transactions', methods=['POST',"OPTIONS",])
 async def get_transactions(request):
     _hash = request.json['hash']
@@ -276,11 +199,7 @@ async def get_transactions(request):
         return _respond_to_request({'error': 'Block with hash {} does not exist.'.format(_hash)}, status=400)
     return _respond_to_request(txs)
 
-@app.route("/teardown-network", methods=["POST","OPTIONS",])
-async def teardown_network(request):
-    # raise NotImplementedError()
-    # tx = KillSignal.create()
-    return _respond_to_request({ 'message': 'tearing down network' })
+
 
 def start_webserver(q):
     time.sleep(30)   # wait for 30 secs before starting web server
