@@ -72,7 +72,7 @@ class TransactionBatcher(Worker):
             self.num_empty_blocks_recvd = 0     # reset
 
         else:
-            raise Exception("Batcher got message type {} from IPC dealer socket that it does not know how to handle"
+            self.log.error("Batcher got message type {} from IPC dealer socket that it does not know how to handle"
                             .format(type(msg)))
 
     async def compose_transactions(self):

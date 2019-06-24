@@ -260,7 +260,7 @@ class SubBlockBuilder(Worker):
             self._fail_block(msg)
 
         else:
-            raise Exception("SBB got message type {} from IPC dealer socket that it does not know how to handle"
+            self.log.error("SBB got message type {} from IPC dealer socket that it does not know how to handle"
                             .format(type(msg)))
 
     def _send_msg_over_ipc(self, message: MessageBase):

@@ -173,8 +173,8 @@ class BlockAggregator(Worker):
             self.catchup_manager.recv_block_idx_req(sender, msg)
 
         else:
-            raise Exception("BlockAggregator got message type {} from SUB socket that it does not know how to handle"
-                            .format(type(msg)))
+            self.log.error("BlockAggregator got message type {} from SUB socket that it does not know how to handle"
+                           .format(type(msg)))
 
     def handle_router_msg(self, frames):
         envelope = Envelope.from_bytes(frames[-1])
@@ -197,7 +197,7 @@ class BlockAggregator(Worker):
                 self.curr_block.reset()
 
         else:
-            raise Exception("BlockAggregator got message type {} from ROUTER socket that it does not know how to handle"
+            self.log.error("BlockAggregator got message type {} from ROUTER socket that it does not know how to handle"
                             .format(type(msg)))
 
     def recv_sub_block_contender(self, sender_vk: str, sbc: SubBlockContender):

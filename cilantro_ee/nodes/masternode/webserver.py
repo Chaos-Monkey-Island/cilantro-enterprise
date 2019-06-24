@@ -200,7 +200,6 @@ async def get_transactions(request):
     return _respond_to_request(txs)
 
 
-
 def start_webserver(q):
     time.sleep(30)   # wait for 30 secs before starting web server
     app.queue = q

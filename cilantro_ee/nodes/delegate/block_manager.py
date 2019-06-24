@@ -220,7 +220,7 @@ class BlockManager(Worker):
             if vk == self.verifying_key:
                 return index
 
-        raise Exception("Delegate VK {} not found in VKBook {}".format(self.verifying_key, PhoneBook.delegates))
+        self.log.error("Delegate VK {} not found in VKBook {}".format(self.verifying_key, PhoneBook.delegates))
 
     def handle_ipc_msg(self, frames):
         self.log.spam("Got msg over ROUTER IPC from a SBB with frames: {}".format(frames))  # TODO delete this
@@ -242,7 +242,7 @@ class BlockManager(Worker):
         # elif isinstance(msg, SomeOtherType):
         #     self._handle_some_other_type_of_msg(msg)
         else:
-            raise Exception("BlockManager got unexpected Message type {} over IPC that it does not know how to handle!"
+            self.log.error("BlockManager got unexpected Message type {} over IPC that it does not know how to handle!"
                             .format(type(msg)))
 
     def handle_sub_msg(self, frames):
@@ -263,7 +263,7 @@ class BlockManager(Worker):
             self.log.important3("BM got FailedBlockNotification from sender {} with hash {}".format(envelope.sender, msg.prev_block_hash))
             self.handle_fail_block(msg)
         else:
-            raise Exception("BlockManager got message type {} from SUB socket that it does not know how to handle"
+            self.log.error("BlockManager got message type {} from SUB socket that it does not know how to handle"
                             .format(type(msg)))
 
     def set_catchup_done(self):
@@ -312,7 +312,7 @@ class BlockManager(Worker):
         elif isinstance(msg, BlockDataReply):
             self.recv_block_data_reply(msg)
         else:
-            raise Exception("BlockManager got message type {} from ROUTER socket that it does not know how to handle"
+            self.log.error("BlockManager got message type {} from ROUTER socket that it does not know how to handle"
                             .format(type(msg)))
 
     def _compute_new_block_hash(self):
