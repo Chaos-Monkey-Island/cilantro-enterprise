@@ -91,6 +91,7 @@ class MessageBase(metaclass=MessageBaseMeta):
         :param validate: If true, this method will also validate the data before returning the message object
         :return: An instance of MessageBase
         """
+
         model = cls.from_data(cls._deserialize_data(data), validate=validate)
         set_lazy_property(model, 'serialize', data)
         return model

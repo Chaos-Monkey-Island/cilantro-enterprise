@@ -2,10 +2,13 @@ from cilantro_ee.logger.base import get_logger
 
 from sanic import Sanic
 from sanic.response import json, text
-from cilantro_ee.storage.driver import SafeDriver
 from sanic_limiter import Limiter, get_remote_address
 from sanic_cors import CORS
+from sanic.exceptions import SanicException
 
+from secure import SecureHeaders
+
+from cilantro_ee.storage.driver import SafeDriver
 from cilantro_ee.messages.transaction.contract import ContractTransaction
 from cilantro_ee.messages.transaction.publish import PublishTransaction
 from cilantro_ee.messages.transaction.container import TransactionContainer
@@ -29,8 +32,12 @@ from cilantro_ee.protocol.webserver.validation import *
 import json as _json
 
 ssl = None
+
+secure_headers = SecureHeaders()
 app = Sanic("MN-WebServer")
+
 CORS(app, automatic_options=True)
+
 log = get_logger("MN-WebServer")
 driver = MasterStorage()
 # Define Access-Control header(s) to enable CORS for webserver. This should be included in every response
@@ -65,6 +72,16 @@ def _get_contract_obj(contract):
     if contract_obj.get('code_obj'):
         del contract_obj['code_obj']
     return contract_obj
+
+
+@app.exception(SanicException)
+async def error(request, response, exception):
+    return text(exception, status=500)
+
+
+@app.middleware("response")
+async def set_secure_headers(request, response):
+    secure_headers.sanic(response)
 
 
 @app.route("/", methods=["POST","OPTIONS",])
@@ -284,4 +301,5 @@ if __name__ == '__main__':
             'REQUEST_MAX_SIZE': 5,
             'REQUEST_TIMEOUT': 5
         })
+
     start_webserver(Queue())

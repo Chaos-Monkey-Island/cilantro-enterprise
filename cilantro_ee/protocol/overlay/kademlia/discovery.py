@@ -57,6 +57,8 @@ class Discovery:
 
                 ip, pepper = msg[:2]
 
+                # Do IP validation as well.
+
                 if pepper != self.pepper:
                     # raghu TODO #audit #error_processing #dos - these should go into zmq blacklist
                     self.log.warning("Node with ip {} tried to connect using incorrect pepper {}!".format(ip, pepper))
