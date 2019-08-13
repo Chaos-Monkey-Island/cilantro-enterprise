@@ -115,12 +115,14 @@ class CatchupManager:
         blk_dict = self.driver.get_block(latest_state_num)
 
         nonces = {}
-        for raw_sb in blk_dict.get('subBlocks'):
-            subblock = subblock_capnp.SubBlock.from_bytes_packed(raw_sb)
-            self.log.info('Block: {}'.format(subblock))
-            for tx in subblock.transactions:
-                update_nonce_hash(nonce_hash=nonces, tx_payload=tx.transaction.payload)
-                self.state.set_transaction_data(tx=tx)
+        sbs = blk_dict.get('subBlocks')
+        if sbs is not None:
+            for raw_sb in sbs:
+                subblock = subblock_capnp.SubBlock.from_bytes_packed(raw_sb)
+                self.log.info('Block: {}'.format(subblock))
+                for tx in subblock.transactions:
+                    update_nonce_hash(nonce_hash=nonces, tx_payload=tx.transaction.payload)
+                    self.state.set_transaction_data(tx=tx)
 
         self.state.commit_nonces(nonce_hash=nonces)
         self.state.delete_pending_nonces()
