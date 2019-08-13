@@ -115,8 +115,7 @@ class CatchupManager:
         blk_dict = self.driver.get_block(latest_state_num)
 
         nonces = {}
-
-        for raw_sb in blk_dict['subBlocks']:
+        for raw_sb in blk_dict.get('subBlocks'):
             subblock = subblock_capnp.SubBlock.from_bytes_packed(raw_sb)
             self.log.info('Block: {}'.format(subblock))
             for tx in subblock.transactions:
