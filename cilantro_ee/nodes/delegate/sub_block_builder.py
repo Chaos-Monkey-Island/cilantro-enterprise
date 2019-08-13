@@ -156,6 +156,7 @@ class SubBlockBuilder(Worker):
         # Create DEALER socket to talk to the BlockManager process over IPC
         self.ipc_dealer = self.manager.create_socket(socket_type=zmq.DEALER,
                                                      name="SBB-IPC-Dealer[{}]".format(self.sb_blder_idx), secure=False)
+
         self.ipc_dealer.setsockopt(zmq.IDENTITY, str(self.sb_blder_idx).encode())
         self.ipc_dealer.connect(port=ipc_port, protocol='ipc', ip=ipc_ip)
 
@@ -324,6 +325,8 @@ class SubBlockBuilder(Worker):
 # ONLY FOR TX BATCHES
     def handle_sub_msg(self, frames, index):
         msg_filter, msg_type, msg_blob = frames
+
+        self.log.info('Got SUB message: {}'.format(frames))
 
         if msg_type == MessageTypes.TRANSACTION_BATCH and 0 <= index < len(self.sb_managers):
 
