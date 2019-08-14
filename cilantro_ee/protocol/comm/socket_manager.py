@@ -39,10 +39,8 @@ class SocketManager:
         # Instantiating an OverlayClient blocks until the OverlayServer is ready
         self.overlay_client = OverlayClient(self._handle_overlay_reply, self._handle_overlay_event, ctx=self.context)
 
-
     def is_ready(self):
         return self._ready
-    
 
     def create_socket(self, socket_type, secure=False, domain='*', *args, name='LSocket', **kwargs) -> LSocketBase:
         assert type(socket_type) is int and socket_type > 0, "socket type must be an int greater than 0, not {}".format(socket_type)

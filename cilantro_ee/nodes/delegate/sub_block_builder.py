@@ -48,13 +48,39 @@ from cilantro_ee.messages import capnp as schemas
 import os
 import capnp
 from decimal import Decimal
-
+import json
+from cilantro_ee.protocol.comm import services
 
 blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
 envelope_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/envelope.capnp')
 transaction_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/transaction.capnp')
 signal_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/signals.capnp')
+
+
+async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
+    find_message = ['find', vk]
+    find_message = json.dumps(find_message).encode()
+
+    node_ip = await services.get(services._socket('tcp://127.0.0.1:10002'),
+                 msg=find_message,
+                 ctx=ctx,
+                 timeout=3000)
+
+    d = json.loads(node_ip)
+    ip = d.get(vk)
+    s = None
+
+    if ip is not None:
+        # Got the ip! Check if it is a tcp string or just an IP. This should be fixed later
+        if services.SocketStruct.is_valid(ip):
+            s = services._socket(ip)
+            s.port = port
+        else:
+            # Just an IP...
+            s = services.SocketStruct(services.Protocols.TCP, id=ip, port=port)
+
+    return s
 
 
 class Metadata:
@@ -164,7 +190,7 @@ class SubBlockBuilder(Worker):
 
         # BIND sub sockets to listen to witnesses
         self.sb_managers = []
-        self._create_sub_sockets()
+        #self._create_sub_sockets()
         # need to tie with catchup state to initialize to real next_block_to_make
         self._next_block_to_make = NextBlockToMake()
         self.tasks.append(self._connect_and_process())
@@ -194,8 +220,9 @@ class SubBlockBuilder(Worker):
 
         return self._next_block_to_make.state == NextBlockState.READY
 
-    def _create_sub_sockets(self):
+    async def _create_sub_sockets(self):
         for idx in range(NUM_SB_PER_BUILDER):
+
             sub = self.manager.create_socket(socket_type=zmq.SUB, name="SBB-Sub[{}]-{}".format(self.sb_blder_idx, idx),
                                              secure=True)
 
@@ -244,9 +271,12 @@ class SubBlockBuilder(Worker):
         num_discards = self._align_to_hash(smi, aih.input_hash)
         self.log.debug("Discarded {} input bags to get alignment".format(num_discards))
         # at this point, any bags in to_finalize_txs should go back to the front of pending_txs
+
         while len(self.sb_managers[smi].to_finalize_txs) > 0:
             ih, txs_bag = self.sb_managers[smi].to_finalize_txs.pop_front()
+
             self.adjust_work_load(txs_bag, True)
+
             self.sb_managers[smi].pending_txs.insert_front(ih, txs_bag)
         # self._make_next_sb()
 

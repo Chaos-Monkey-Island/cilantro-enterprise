@@ -27,7 +27,7 @@ from cilantro_ee.constants.system_config import *
 from cilantro_ee.constants.zmq_filters import DEFAULT_FILTER, NEW_BLK_NOTIF_FILTER
 from cilantro_ee.constants.ports import *
 from cilantro_ee.constants import conf
-
+from cilantro_ee.protocol.comm import services
 from cilantro_ee.messages.block_data.notification import FailedBlockNotification
 from cilantro_ee.messages.message import MessageTypes
 from cilantro_ee.messages.block_data.state_update import *
@@ -38,7 +38,7 @@ import asyncio, zmq, time, random
 from cilantro_ee.messages import capnp as schemas
 import os
 import capnp
-
+import json
 blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
 envelope_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/envelope.capnp')
@@ -256,11 +256,12 @@ class BlockManager(Worker):
         # Create SUB socket to
         # 1) listen for subblock contenders from other delegates
         # 2) listen for NewBlockNotifications from masternodes
-        self.sub = self.manager.create_socket(
-            socket_type=zmq.SUB,
-            name="BM-Sub-{}".format(self.verifying_key[-4:]),
-            secure=True,
-        )
+        # self.sub = self.manager.create_socket(
+        #     socket_type=zmq.SUB,
+        #     name="BM-Sub-{}".format(self.verifying_key[-4:]),
+        #     secure=True,
+        # )
+        self.sub = self.zmq_ctx.socket(zmq.SUB)
         self.sub.setsockopt(zmq.SUBSCRIBE, DEFAULT_FILTER.encode())
         self.sub.setsockopt(zmq.SUBSCRIBE, NEW_BLK_NOTIF_FILTER.encode())
 
@@ -273,6 +274,34 @@ class BlockManager(Worker):
 
         # Listen to Masternodes over sub and connect router for catchup communication
         for vk in PhoneBook.masternodes:
+
+            find_message = ['find', vk]
+            find_message = json.dumps(find_message).encode()
+
+            node_ip = await services.get(services._socket('tcp://127.0.0.1:10002'),
+                                         msg=find_message,
+                                         ctx=self.zmq_ctx,
+                                         timeout=3000)
+
+            d = json.loads(node_ip)
+            ip = d.get(vk)
+            if ip is not None:
+                # Got the ip! Check if it is a tcp string or just an IP. This should be fixed later
+                if services.SocketStruct.is_valid(ip):
+                    s = services._socket(ip)
+                    s.port = MN_PUB_PORT
+                else:
+                    # Just an IP...
+                    s = services.SocketStruct(services.Protocols.TCP, id=ip, port=MN_PUB_PORT)
+
+            self.log.critical('GOT {}'.format(node_ip))
+
+            self.sub.connect(s.zmq_url())
+
+            s.port = MN_ROUTER_PORT
+
+            self.router.connect(s.zmq_url())
+
             self.sub.connect(vk=vk, port=MN_PUB_PORT)
             self.router.connect(vk=vk, port=MN_ROUTER_PORT)
 
@@ -326,10 +355,21 @@ class BlockManager(Worker):
             self.log.info('No transactions. Resetting work.')
 
         elif msg_type == MessageTypes.SUBBLOCK_CONTENDER:
-            msg = subblock_capnp.SubBlockContender.from_bytes_packed(msg_blob)
+            sbc = subblock_capnp.SubBlockContender.from_bytes_packed(msg_blob)
 
-            self._handle_sbc(sbb_index, msg, msg_blob)
-            if len(msg.merkleLeaves) == 0:
+            # Forward to Masters!!
+            self.log.important(
+                "Got SBC with sb-index {} result-hash {}. Sending to Masternodes.".format(sbc.subBlockIdx,
+                                                                                          sbc.resultHash))
+
+            # if not self._is_pending_work() and (sbb_index == 0): # todo need async methods here
+            self.pub.send_msg(filter=DEFAULT_FILTER.encode(),
+                              msg_type=MessageTypes.SUBBLOCK_CONTENDER,
+                              msg=msg_blob)
+
+            self.db_state.my_sub_blocks.add_sub_block(sbb_index, sbc)
+
+            if len(sbc.merkleLeaves) == 0:
                 self._reset_sb_have_data(sbb_index)
                 self.log.info('Message empty, resetting SB.')
             else:
