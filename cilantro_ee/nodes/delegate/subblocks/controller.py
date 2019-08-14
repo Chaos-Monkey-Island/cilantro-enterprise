@@ -3,6 +3,9 @@ from cilantro_ee.storage.vkbook import PhoneBook
 from cilantro_ee.constants.ports import MN_PUB_PORT
 from contracting.db.cr.client import SubBlockClient
 from cilantro_ee.protocol.comm import services
+
+import hashlib
+import time
 import json
 import asyncio
 import zmq.asyncio
@@ -34,6 +37,55 @@ async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
 
     return s
 
+
+class TransactionBatcherSubscriber(services.SubscriptionService):
+    def handle_msg(self, msg):
+        msg_filter, msg_type, msg_blob = msg
+        if msg_type == MessageTypes.TRANSACTION_BATCH and 0 <= index < len(self.sb_managers):
+
+            batch = transaction_capnp.TransactionBatch.from_bytes_packed(msg_blob)
+
+            if len(batch.transactions) < 1:
+                self.log.info('Empty bag. Tossing.')
+                continue
+
+            self.log.info('Got tx batch with {} txs for sbb {}'.format(len(batch.transactions), index))
+
+            if batch.sender.hex() not in PhoneBook.masternodes:
+                self.log.critical('RECEIVED TX BATCH FROM NON DELEGATE')
+                return
+
+            else:
+                self.log.success('{} is a masternode!'.format(batch.sender.hex()))
+
+            timestamp = batch.timestamp
+            self.log.info(timestamp, time.time())
+
+            if timestamp <= self.sb_managers[index].processed_txs_timestamp:
+                self.log.debug(
+                    "Got timestamp {} that is prior to the most recent timestamp {} for sb_manager {} tho"
+                        .format(timestamp, self.sb_managers[index].processed_txs_timestamp, index))
+                return
+
+            # Set up a hasher for input hash and a list for valid txs
+            h = hashlib.sha3_256()
+            valid_transactions = []
+
+            for tx in batch.transactions:
+                # Double check to make sure all transactions are valid
+                if transaction_is_valid(tx=tx,
+                                        expected_processor=batch.sender,
+                                        driver=self.state,
+                                        strict=False):
+                    valid_transactions.append(tx)
+
+                # Hash all transactions regardless because the proof from masternodes is derived from all hashes
+                h.update(tx.as_builder().to_bytes_packed())
+
+            input_hash = h.digest()
+
+            if not _verify(batch.sender, input_hash, batch.signature):
+                return
 
 class SubBlockBuilder:
     def __init__(self,
@@ -83,52 +135,6 @@ class SubBlockBuilder:
         # Pull from the subscription message queue
         while True:
             if len(self.transaction_batch_subscription.received) > 0:
-                msg = self.transaction_batch_subscription.received.pop(0)
+                transactions = self.transaction_batch_subscription.received.pop(0)
 
-                msg_filter, msg_type, msg_blob = msg
-                if msg_type == MessageTypes.TRANSACTION_BATCH and 0 <= index < len(self.sb_managers):
-
-                    batch = transaction_capnp.TransactionBatch.from_bytes_packed(msg_blob)
-
-                    if len(batch.transactions) < 1:
-                        self.log.info('Empty bag. Tossing.')
-                        continue
-
-                    self.log.info('Got tx batch with {} txs for sbb {}'.format(len(batch.transactions), index))
-
-                    if batch.sender.hex() not in PhoneBook.masternodes:
-                        self.log.critical('RECEIVED TX BATCH FROM NON DELEGATE')
-                        return
-
-                    else:
-                        self.log.success('{} is a masternode!'.format(batch.sender.hex()))
-
-                    timestamp = batch.timestamp
-                    self.log.info(timestamp, time.time())
-
-                    if timestamp <= self.sb_managers[index].processed_txs_timestamp:
-                        self.log.debug(
-                            "Got timestamp {} that is prior to the most recent timestamp {} for sb_manager {} tho"
-                            .format(timestamp, self.sb_managers[index].processed_txs_timestamp, index))
-                        return
-
-                    # Set up a hasher for input hash and a list for valid txs
-                    h = hashlib.sha3_256()
-                    valid_transactions = []
-
-                    for tx in batch.transactions:
-                        # Double check to make sure all transactions are valid
-                        if transaction_is_valid(tx=tx,
-                                                expected_processor=batch.sender,
-                                                driver=self.state,
-                                                strict=False):
-
-                            valid_transactions.append(tx)
-
-                        # Hash all transactions regardless because the proof from masternodes is derived from all hashes
-                        h.update(tx.as_builder().to_bytes_packed())
-
-                    input_hash = h.digest()
-
-                    if not _verify(batch.sender, input_hash, batch.signature):
-                        return
+                # Do shit with transactions
