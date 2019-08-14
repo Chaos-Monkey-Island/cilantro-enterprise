@@ -4,6 +4,7 @@ import zmq
 import asyncio
 import json
 
+
 class SocketEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, SocketStruct):
@@ -117,7 +118,11 @@ class SubscriptionService:
                     event = await socket.poll(timeout=self.timeout, flags=zmq.POLLIN)
                     if event:
                         msg = await socket.recv()
-                        self.received.append((msg, address))
+
+                        # Allow subclassing of a hook to verify or process a message before putting it in the queue
+                        handled_msg = self.handle_msg(msg)
+                        if handled_msg is not None:
+                            self.received.append((handled_msg, address))
                 except zmq.error.ZMQError as e:
                     socket.close()
 
@@ -131,6 +136,9 @@ class SubscriptionService:
             for address in self.to_remove:
                 self._destroy_socket(address)
             self.to_remove = []
+
+    def handle_msg(self, msg):
+        return msg
 
     def stop(self):
         self.running = False
