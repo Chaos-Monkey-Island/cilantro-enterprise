@@ -1,6 +1,5 @@
 from decimal import Decimal
 from cilantro_ee.protocol import wallet
-from cilantro_ee.protocol.pow import SHA3POW, SHA3POWBytes
 from cilantro_ee.protocol import pipehash
 from contracting import config
 from cilantro_ee.storage.state import MetaDataStorage
@@ -18,34 +17,6 @@ VALUE_TYPE_MAP = {
     bytes: 'data',
     bool: 'bool'
 }
-
-
-class TransactionWrapper:
-    def __init__(self, struct: transaction_capnp.Transaction):
-        self.struct = struct
-
-    def is_signed(self) -> bool:
-        return wallet._verify(vk=self.struct.payload.sender,
-                              msg=self.struct.payload,
-                              signature=self.struct.metadata.signature)
-
-    def is_proven(self) -> bool:
-        return SHA3POW.check(self.struct.payload, self.struct.metadata.proof)
-
-    def nonce_is_correct(self, driver) -> bool:
-        pass
-
-    def is_completely_valid(self, driver):
-        return self.is_signed() and self.is_proven() and self.nonce_is_correct(driver)
-
-    def arguments_to_py_dict(self) -> dict:
-        kwargs = {}
-        for entry in self.struct.payload.kwargs.entries:
-            if entry.value.which() == 'fixedPoint':
-                kwargs[entry.key] = Decimal(entry.value.fixedPoint)
-            else:
-                kwargs[entry.key] = getattr(entry.value, entry.value.which())
-        return kwargs
 
 
 class TransactionBuilder:
@@ -108,7 +79,6 @@ class TransactionBuilder:
 
     def generate_proof(self):
         self.proof = pipehash.find_solution(self.epoch, self.payload_bytes, difficulty=self.proof_difficulty)
-        #self.proof = SHA3POWBytes.find(self.payload_bytes)
         self.proof_generated = True
 
     def serialize(self):
@@ -124,20 +94,6 @@ class TransactionBuilder:
         self.struct.metadata.timestamp = int(time.time())
 
         return self.struct.to_bytes_packed()
-
-
-def verify_packed_tx(sender, tx):
-    try:
-        unpacked = transaction_capnp.Transaction.from_bytes_packed(tx)
-        msg = unpacked.payload
-
-        proof = SHA3POW.check(msg, unpacked.metadata.proof.decode())
-        sig = bytes.fromhex(unpacked.metadata.signature.decode())
-
-        verified = wallet._verify(sender, msg, sig)
-        return verified and proof
-    except:
-        return False
 
 
 def transaction_is_valid(tx: transaction_capnp.Transaction,
