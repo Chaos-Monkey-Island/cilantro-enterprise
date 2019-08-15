@@ -37,3 +37,19 @@ class SubBlockManager:
     def get_empty_input_hash(self):
         self.empty_input_iter += 1
         return Hasher.hash(self.connected_vk + str(self.empty_input_iter))
+
+
+class PendingSubBlock:
+    def __init__(self, idx, master_vk, ):
+
+class SubBlockMgmt:
+    def __init__(self):
+        self.current_subblock_idx = 0
+        self.last_processed_
+
+    def push_pending_tx(self):
+        pass
+
+    def pop_pending_tx(self):
+        pass
+

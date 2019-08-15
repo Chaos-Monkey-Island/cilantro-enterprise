@@ -1,5 +1,6 @@
 from unittest import TestCase
-from cilantro_ee.protocol.comm.services import SubscriptionService, SocketStruct, Protocols
+from cilantro_ee.protocol.services.pubsub import SubscriptionService
+from cilantro_ee.protocol.services.core import SocketStruct, Protocols
 import zmq.asyncio
 import asyncio
 

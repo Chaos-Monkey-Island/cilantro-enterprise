@@ -11,7 +11,8 @@
     so sub-block builders can proceed to next block
 
 """
-
+import cilantro_ee.protocol.services.core
+import cilantro_ee.protocol.services.reqrep
 from cilantro_ee.logger.base import get_logger
 
 from cilantro_ee.nodes.catchup import CatchupManager
@@ -27,7 +28,6 @@ from cilantro_ee.constants.system_config import *
 from cilantro_ee.constants.zmq_filters import DEFAULT_FILTER, NEW_BLK_NOTIF_FILTER
 from cilantro_ee.constants.ports import *
 from cilantro_ee.constants import conf
-from cilantro_ee.protocol.comm import services
 from cilantro_ee.messages.block_data.notification import FailedBlockNotification
 from cilantro_ee.messages.message import MessageTypes
 from cilantro_ee.messages.block_data.state_update import *
@@ -278,21 +278,22 @@ class BlockManager(Worker):
             find_message = ['find', vk]
             find_message = json.dumps(find_message).encode()
 
-            node_ip = await services.get(services._socket('tcp://127.0.0.1:10002'),
-                                         msg=find_message,
-                                         ctx=self.zmq_ctx,
-                                         timeout=3000)
+            node_ip = await cilantro_ee.protocol.services.reqrep.get(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10002'),
+                                                                     msg=find_message,
+                                                                     ctx=self.zmq_ctx,
+                                                                     timeout=3000)
 
             d = json.loads(node_ip)
             ip = d.get(vk)
             if ip is not None:
                 # Got the ip! Check if it is a tcp string or just an IP. This should be fixed later
-                if services.SocketStruct.is_valid(ip):
-                    s = services._socket(ip)
+                if cilantro_ee.protocol.services.core.SocketStruct.is_valid(ip):
+                    s = cilantro_ee.protocol.services.core._socket(ip)
                     s.port = MN_PUB_PORT
                 else:
                     # Just an IP...
-                    s = services.SocketStruct(services.Protocols.TCP, id=ip, port=MN_PUB_PORT)
+                    s = cilantro_ee.protocol.services.core.SocketStruct(
+                        cilantro_ee.protocol.services.core.Protocols.TCP, id=ip, port=MN_PUB_PORT)
 
             self.log.critical('GOT {}'.format(node_ip))
 

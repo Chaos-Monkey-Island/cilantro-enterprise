@@ -16,7 +16,8 @@
 
 
 # need to clean this up - this is a dirty version of trying to separate out a sub-block builder in the old code
-
+import cilantro_ee.protocol.services.core
+import cilantro_ee.protocol.services.reqrep
 from cilantro_ee.storage.state import MetaDataStorage
 from cilantro_ee.constants.zmq_filters import *
 from cilantro_ee.constants.system_config import *
@@ -49,7 +50,7 @@ import os
 import capnp
 from decimal import Decimal
 import json
-from cilantro_ee.protocol.comm import services
+from cilantro_ee.protocol.services import services
 
 blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
@@ -62,10 +63,10 @@ async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
     find_message = ['find', vk]
     find_message = json.dumps(find_message).encode()
 
-    node_ip = await services.get(services._socket('tcp://127.0.0.1:10002'),
-                 msg=find_message,
-                 ctx=ctx,
-                 timeout=3000)
+    node_ip = await cilantro_ee.protocol.services.reqrep.get(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10002'),
+                                                             msg=find_message,
+                                                             ctx=ctx,
+                                                             timeout=3000)
 
     d = json.loads(node_ip)
     ip = d.get(vk)
@@ -73,12 +74,12 @@ async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
 
     if ip is not None:
         # Got the ip! Check if it is a tcp string or just an IP. This should be fixed later
-        if services.SocketStruct.is_valid(ip):
-            s = services._socket(ip)
+        if cilantro_ee.protocol.services.core.SocketStruct.is_valid(ip):
+            s = cilantro_ee.protocol.services.core._socket(ip)
             s.port = port
         else:
             # Just an IP...
-            s = services.SocketStruct(services.Protocols.TCP, id=ip, port=port)
+            s = cilantro_ee.protocol.services.core.SocketStruct(cilantro_ee.protocol.services.core.Protocols.TCP, id=ip, port=port)
 
     return s
 
@@ -223,10 +224,12 @@ class SubBlockBuilder(Worker):
     async def _create_sub_sockets(self):
         for idx in range(NUM_SB_PER_BUILDER):
 
-            sub = self.manager.create_socket(socket_type=zmq.SUB, name="SBB-Sub[{}]-{}".format(self.sb_blder_idx, idx),
+            sub = self.manager.create_socket(socket_type=zmq.SUB,
+                                             name="SBB-Sub[{}]-{}".format(self.sb_blder_idx, idx),
                                              secure=True)
 
             sub.setsockopt(zmq.SUBSCRIBE, TRANSACTION_FILTER.encode())
+
             sb_index = idx * NUM_SB_BUILDERS + self.sb_blder_idx
 
             self.sb_managers.append(SubBlockManager(sub_block_index=sb_index, sub_socket=sub))
@@ -304,7 +307,6 @@ class SubBlockBuilder(Worker):
         self.state.delete_pending_nonces()
 
         self.startup = True
-        # self._make_next_sb()
 
     def handle_ipc_msg(self, frames):
         self.log.info("SBB received an IPC message {}".format(frames))

@@ -1,13 +1,16 @@
-from cilantro_ee.protocol.comm import services
+import cilantro_ee.protocol.services.async
+import cilantro_ee.protocol.services.core
+import cilantro_ee.protocol.services.pubsub
+from cilantro_ee.protocol.services import services
 from cilantro_ee.storage.state import MetaDataStorage
 from cilantro_ee.messages.message import MessageTypes
 
 
 class BlockManager:
     def __init__(self):
-        self.sbb_router = services.AsyncInbox()
+        self.sbb_router = cilantro_ee.protocol.services.async.AsyncInbox()
         self.mn_publisher = None
-        self.mn_subscription = services.SubscriptionService()
+        self.mn_subscription = cilantro_ee.protocol.services.pubsub.SubscriptionService()
         self.public_router = None
 
         self.state = MetaDataStorage()
@@ -33,7 +36,7 @@ class BlockManager:
 
                     pass
 
-            await services.defer()
+            await cilantro_ee.protocol.services.core.defer()
 
     async def handle_sbb_router(self):
         pass
