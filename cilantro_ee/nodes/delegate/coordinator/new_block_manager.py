@@ -1,7 +1,6 @@
 import cilantro_ee.protocol.services.async
 import cilantro_ee.protocol.services.core
 import cilantro_ee.protocol.services.pubsub
-from cilantro_ee.protocol.services import services
 from cilantro_ee.storage.state import MetaDataStorage
 from cilantro_ee.messages.message import MessageTypes
 

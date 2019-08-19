@@ -3,7 +3,7 @@ from cilantro_ee.protocol.overlay.discovery import *
 import zmq
 import zmq.asyncio
 from cilantro_ee.protocol.wallet import Wallet
-from cilantro_ee.protocol.services.core import _socket
+from cilantro_ee.protocol.services.core import sockstr
 from time import sleep
 
 TIME_UNIT = 0.01
@@ -34,10 +34,10 @@ class TestDiscoveryServer(TestCase):
         self.loop.close()
 
     def test_init(self):
-        DiscoveryServer(_socket('tcp://127.0.0.1:10999'), Wallet(), b'blah')
+        DiscoveryServer(sockstr('tcp://127.0.0.1:10999'), Wallet(), b'blah')
 
     def test_run_server(self):
-        d = DiscoveryServer(_socket('tcp://127.0.0.1:10999'), Wallet(), b'blah')
+        d = DiscoveryServer(sockstr('tcp://127.0.0.1:10999'), Wallet(), b'blah')
 
         tasks = asyncio.gather(timeout_bomb(), d.serve())
         run_silent_loop(tasks)
@@ -47,7 +47,7 @@ class TestDiscoveryServer(TestCase):
     def test_send_message_to_discovery(self):
         address = 'tcp://127.0.0.1:10999'
 
-        d = DiscoveryServer(_socket('tcp://127.0.0.1:10999'), Wallet(), b'blah', ctx=self.ctx)
+        d = DiscoveryServer(sockstr('tcp://127.0.0.1:10999'), Wallet(), b'blah', ctx=self.ctx)
 
         async def ping(msg, sleep):
             await asyncio.sleep(sleep)
@@ -89,7 +89,7 @@ class TestDiscoveryServer(TestCase):
 
         wallet = Wallet()
 
-        d = DiscoveryServer(_socket('tcp://127.0.0.1:10999'), wallet, b'CORRECT_PEPPER', ctx=self.ctx)
+        d = DiscoveryServer(sockstr('tcp://127.0.0.1:10999'), wallet, b'CORRECT_PEPPER', ctx=self.ctx)
 
         async def ping(msg, sleep):
             await asyncio.sleep(sleep)
@@ -110,7 +110,7 @@ class TestDiscoveryServer(TestCase):
 
         wallet = Wallet()
 
-        d = DiscoveryServer(_socket('tcp://127.0.0.1:10999'), wallet, b'WRONG_PEPPER', ctx=self.ctx)
+        d = DiscoveryServer(sockstr('tcp://127.0.0.1:10999'), wallet, b'WRONG_PEPPER', ctx=self.ctx)
 
         async def ping(msg, sleep):
             await asyncio.sleep(sleep)
@@ -130,7 +130,7 @@ class TestDiscoveryServer(TestCase):
 
         wallet = Wallet()
 
-        d = DiscoveryServer(_socket('tcp://127.0.0.1:10999'), wallet, b'CORRECT_PEPPER', ctx=self.ctx)
+        d = DiscoveryServer(sockstr('tcp://127.0.0.1:10999'), wallet, b'CORRECT_PEPPER', ctx=self.ctx)
 
         async def ping(msg, sleep):
             await asyncio.sleep(sleep)
@@ -150,23 +150,23 @@ class TestDiscoveryServer(TestCase):
 
     def test_async_ping_timeout_occurs_if_ip_isnt_online(self):
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(ping(_socket('inproc://dontexist'),
+        loop.run_until_complete(ping(sockstr('inproc://dontexist'),
                                      pepper=b'DOESNT_MATTER',
                                      ctx=self.ctx,
-                                     timeout=50,)
+                                     timeout=50, )
                                 )
 
     def test_one_vk_returned_if_one_ip_is_online(self):
         wallet = Wallet()
 
-        d = DiscoveryServer(_socket('tcp://127.0.0.1:10999'), wallet, b'CORRECT_PEPPER', ctx=self.ctx)
+        d = DiscoveryServer(sockstr('tcp://127.0.0.1:10999'), wallet, b'CORRECT_PEPPER', ctx=self.ctx)
 
-        success_task = ping(_socket('tcp://127.0.0.1:10999'),
+        success_task = ping(sockstr('tcp://127.0.0.1:10999'),
                             pepper=b'CORRECT_PEPPER',
                             ctx=self.ctx,
                             timeout=300)
 
-        failure_task = ping(_socket('tcp://127.0.0.1:20999'),
+        failure_task = ping(sockstr('tcp://127.0.0.1:20999'),
                             pepper=b'CORRECT_PEPPER',
                             ctx=self.ctx,
                             timeout=300)
@@ -189,7 +189,7 @@ class TestDiscoveryServer(TestCase):
         self.assertIsNone(vk2)
 
     def test_discover_nodes_found_one(self):
-        address = _socket('tcp://127.0.0.1:10999')
+        address = sockstr('tcp://127.0.0.1:10999')
 
         wallet = Wallet()
 
@@ -213,7 +213,7 @@ class TestDiscoveryServer(TestCase):
         self.assertEqual(r[str(address)], wallet.verifying_key().hex())
 
     def test_discover_nodes_found_three(self):
-        addresses = [_socket('tcp://127.0.0.1:10999'), _socket('tcp://127.0.0.1:11999'), _socket('tcp://127.0.0.1:12999')]
+        addresses = [sockstr('tcp://127.0.0.1:10999'), sockstr('tcp://127.0.0.1:11999'), sockstr('tcp://127.0.0.1:12999')]
         wallets = [Wallet(), Wallet(), Wallet()]
         pepper = b'CORRECT_PEPPER'
         server_timeout = 0.3
@@ -246,8 +246,8 @@ class TestDiscoveryServer(TestCase):
         self.assertEqual(r[str(addresses[2])], wallets[2].verifying_key().hex())
 
     def test_discover_nodes_found_two_out_of_three(self):
-        addresses = [_socket('tcp://127.0.0.1:10999'), _socket('tcp://127.0.0.1:11999'), _socket('tcp://127.0.0.1:12999')]
-        addresses_wrong = [_socket('tcp://127.0.0.1:10999'), _socket('tcp://127.0.0.1:11999'), _socket('tcp://127.0.0.1:13999')]
+        addresses = [sockstr('tcp://127.0.0.1:10999'), sockstr('tcp://127.0.0.1:11999'), sockstr('tcp://127.0.0.1:12999')]
+        addresses_wrong = [sockstr('tcp://127.0.0.1:10999'), sockstr('tcp://127.0.0.1:11999'), sockstr('tcp://127.0.0.1:13999')]
         wallets = [Wallet(), Wallet(), Wallet()]
         pepper = b'CORRECT_PEPPER'
         server_timeout = 1
@@ -282,8 +282,8 @@ class TestDiscoveryServer(TestCase):
         self.assertIsNone(r.get(str(addresses[2])))
 
     def test_discover_nodes_none_found(self):
-        addresses = [_socket('tcp://127.0.0.1:10999'), _socket('tcp://127.0.0.1:11999'), _socket('tcp://127.0.0.1:12999')]
-        addresses_wrong = [_socket('tcp://127.0.0.1:15999'), _socket('tcp://127.0.0.1:14999'), _socket('tcp://127.0.0.1:13999')]
+        addresses = [sockstr('tcp://127.0.0.1:10999'), sockstr('tcp://127.0.0.1:11999'), sockstr('tcp://127.0.0.1:12999')]
+        addresses_wrong = [sockstr('tcp://127.0.0.1:15999'), sockstr('tcp://127.0.0.1:14999'), sockstr('tcp://127.0.0.1:13999')]
         wallets = [Wallet(), Wallet(), Wallet()]
         pepper = b'CORRECT_PEPPER'
         server_timeout = 1

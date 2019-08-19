@@ -1,7 +1,4 @@
-import cilantro_ee.protocol.services.async
-import cilantro_ee.protocol.services.core
-import cilantro_ee.protocol.services.pubsub
-import cilantro_ee.protocol.services.reqrep
+from cilantro_ee.protocol import services
 from cilantro_ee.storage.state import MetaDataStorage
 from cilantro_ee.storage.vkbook import PhoneBook
 from cilantro_ee.constants.ports import MN_PUB_PORT
@@ -23,15 +20,16 @@ transaction_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/transaction
 
 CORES = 4
 
+
 # Convenience method until Overlay server and client, LSocket, and all that crap are gone
 async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
     find_message = ['find', vk]
     find_message = json.dumps(find_message).encode()
 
-    node_ip = await cilantro_ee.protocol.services.reqrep.get(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10002'),
-                                                             msg=find_message,
-                                                             ctx=ctx,
-                                                             timeout=3000)
+    node_ip = await services.reqrep.get(services.core.sockstr('tcp://127.0.0.1:10002'),
+                                        msg=find_message,
+                                        ctx=ctx,
+                                        timeout=3000)
 
     d = json.loads(node_ip)
     ip = d.get(vk)
@@ -39,12 +37,12 @@ async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
 
     if ip is not None:
         # Got the ip! Check if it is a tcp string or just an IP. This should be fixed later
-        if cilantro_ee.protocol.services.core.SocketStruct.is_valid(ip):
-            s = cilantro_ee.protocol.services.core._socket(ip)
+        if services.core.SocketStruct.is_valid(ip):
+            s = services.core.sockstr(ip)
             s.port = port
         else:
             # Just an IP...
-            s = cilantro_ee.protocol.services.core.SocketStruct(cilantro_ee.protocol.services.core.Protocols.TCP, id=ip, port=port)
+            s = services.core.SocketStruct(services.core.Protocols.TCP, id=ip, port=port)
 
     return s
 
@@ -69,13 +67,8 @@ class SubBlockBuilder:
 
         self.client = SubBlockClient(sbb_idx=idx, num_sbb=self.total_builders, loop=loop)
 
-        # Listen to messages from the Block Manager through an IPC Dealer socket
-        # self.ipc_dealer = self.ctx.socket(zmq.DEALER)
-        # self.ipc_dealer.setsockopt(zmq.IDENTITY, self.identity)
-        # self.ipc_dealer.connect(comm_socket.zmq_url())
-
-        self.block_manager_inbox = cilantro_ee.protocol.services.async.AsyncInbox(ctx=self.ctx)
-        self.transaction_batch_subscription = cilantro_ee.protocol.services.pubsub.SubscriptionService(ctx=self.ctx)
+        self.block_manager_ipc_mailbox = services.async.Mailbox(ctx=self.ctx)
+        self.transaction_batch_subscription = services.pubsub.SubscriptionService(ctx=self.ctx)
 
         # Create Sub sockets
         self.master_vks = global_masters[self.idx::CORES]
@@ -102,48 +95,72 @@ class SubBlockBuilder:
                 # Do shit with transactions
                 msg_filter, msg_type, msg_blob = transactions
 
-                if msg_type == MessageTypes.TRANSACTION_BATCH and 0 <= index < self.managers:
+                if msg_type == MessageTypes.TRANSACTION_BATCH:
 
                     batch = transaction_capnp.TransactionBatch.from_bytes_packed(msg_blob)
 
-                    if len(batch.transactions) < 1:
-                        self.log.info('Empty bag. Tossing.')
-                        return
+                    batch_is_valid = self.validate_transaction_batch(batch)
 
-                    self.log.info('Got tx batch with {} txs for sbb {}'.format(len(batch.transactions), index))
+                    if batch_is_valid:
+                        pass
 
-                    if batch.sender.hex() not in PhoneBook.masternodes:
-                        self.log.critical('RECEIVED TX BATCH FROM NON DELEGATE')
-                        return
+    def validate_transaction_batch(self, transaction_batch: transaction_capnp.TransactionBatch):
+        if transaction_capnp.sender not in self.master_vks:
+            return False
 
-                    else:
-                        self.log.success('{} is a masternode!'.format(batch.sender.hex()))
+        if len(transaction_batch.transactions) < 1:
+            self.log.info('Empty bag. Tossing.')
+            return False
 
-                    timestamp = batch.timestamp
-                    self.log.info(timestamp, time.time())
+        timestamp = transaction_batch.timestamp
+        self.log.info(timestamp, time.time())
 
-                    if timestamp <= self.sb_managers[index].processed_txs_timestamp:
-                        self.log.debug(
-                            "Got timestamp {} that is prior to the most recent timestamp {} for sb_manager {} tho"
-                                .format(timestamp, self.sb_managers[index].processed_txs_timestamp, index))
-                        return
+        if timestamp <= self.sb_managers[index].processed_txs_timestamp:
+            self.log.debug(
+                "Got timestamp {} that is prior to the most recent timestamp {} for sb_manager {} tho"
+                    .format(timestamp, self.sb_managers[index].processed_txs_timestamp, index))
+            return False
 
-                    # Set up a hasher for input hash and a list for valid txs
-                    h = hashlib.sha3_256()
-                    valid_transactions = []
+        # Set up a hasher for input hash and a list for valid txs
+        h = hashlib.sha3_256()
+        valid_transactions = []
 
-                    for tx in batch.transactions:
-                        # Double check to make sure all transactions are valid
-                        if transaction_is_valid(tx=tx,
-                                                expected_processor=batch.sender,
-                                                driver=self.state,
-                                                strict=False):
-                            valid_transactions.append(tx)
+        for tx in transaction_batch.transactions:
+            # Double check to make sure all transactions are valid
+            if transaction_is_valid(tx=tx,
+                                    expected_processor=transaction_batch.sender,
+                                    driver=self.state,
+                                    strict=False):
+                valid_transactions.append(tx)
 
-                        # Hash all transactions regardless because the proof from masternodes is derived from all hashes
-                        h.update(tx.as_builder().to_bytes_packed())
+            # Hash all transactions regardless because the proof from masternodes is derived from all hashes
+            h.update(tx.as_builder().to_bytes_packed())
 
-                    input_hash = h.digest()
+        input_hash = h.digest()
 
-                    if not _verify(batch.sender, input_hash, batch.signature):
-                        return
+        if not _verify(transaction_batch.sender, input_hash, transaction_batch.signature):
+            return False
+
+    async def process_block_manager_ipc_messages(self):
+        while True:
+            if len(self.block_manager_ipc_mailbox.inbox) > 0:
+                _id, message = self.block_manager_ipc_mailbox.inbox.pop(0)
+                msg_type, msg_blob = message
+
+                if msg_type == MessageTypes.MAKE_NEXT_BLOCK:
+                    self.log.success("MAKE NEXT BLOCK SIGNAL")
+                    self._make_next_sub_block()
+                    return
+
+                elif msg_type == MessageTypes.ALIGN_INPUT_HASH:
+                    msg = subblock_capnp.AlignInputHash.from_bytes_packed(msg_blob)
+                    self.align_input_hashes(msg)
+
+                elif msg_type == MessageTypes.FAIL_BLOCK_NOTIFICATION:
+                    self._fail_block(msg)
+
+    def increment_work_bag(self):
+        pass
+
+    def decrement_work_bag(self):
+        pass

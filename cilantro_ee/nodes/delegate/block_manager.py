@@ -77,20 +77,21 @@ class SubBlocks:
 class NextBlockData:
     def __init__(self, block_notif):
         self.block_notif = block_notif
-        is_failed = isinstance(block_notif, FailedBlockNotification)
-        self.quorum_num = FAILED_BLOCK_NOTIFICATION_QUORUM if is_failed \
-                            else BLOCK_NOTIFICATION_QUORUM
+
+        if isinstance(block_notif, FailedBlockNotification):
+            self.quorum_num = FAILED_BLOCK_NOTIFICATION_QUORUM
+        else:
+            self.quorum_num = BLOCK_NOTIFICATION_QUORUM
+
         self.is_quorum = False
         self.senders = set()
-
-    def is_quorum(self):
-        return self.is_quorum
 
     def add_sender(self, sender):
         self.senders.add(sender)
         if not self.is_quorum and (len(self.senders) >= self.quorum_num):
             self.is_quorum = True
             return True
+
         return False
 
 # Keeps track of block notifications from master
@@ -278,7 +279,7 @@ class BlockManager(Worker):
             find_message = ['find', vk]
             find_message = json.dumps(find_message).encode()
 
-            node_ip = await cilantro_ee.protocol.services.reqrep.get(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10002'),
+            node_ip = await cilantro_ee.protocol.services.reqrep.get(cilantro_ee.protocol.services.core.sockstr('tcp://127.0.0.1:10002'),
                                                                      msg=find_message,
                                                                      ctx=self.zmq_ctx,
                                                                      timeout=3000)
@@ -288,7 +289,7 @@ class BlockManager(Worker):
             if ip is not None:
                 # Got the ip! Check if it is a tcp string or just an IP. This should be fixed later
                 if cilantro_ee.protocol.services.core.SocketStruct.is_valid(ip):
-                    s = cilantro_ee.protocol.services.core._socket(ip)
+                    s = cilantro_ee.protocol.services.core.sockstr(ip)
                     s.port = MN_PUB_PORT
                 else:
                     # Just an IP...

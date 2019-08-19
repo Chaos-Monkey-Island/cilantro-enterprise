@@ -1,6 +1,5 @@
 import cilantro_ee.protocol.services.async
 import cilantro_ee.protocol.services.core
-from cilantro_ee.protocol.services import services
 import zmq.asyncio
 from cilantro_ee.protocol.wallet import Wallet
 from unittest import TestCase
@@ -21,23 +20,23 @@ class TestAsyncServer(TestCase):
 
     def test_init(self):
         w = Wallet()
-        cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10000'), w, self.ctx)
+        cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core.sockstr('tcp://127.0.0.1:10000'), w, self.ctx)
 
     def test_addresses_correct(self):
         w = Wallet()
-        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10000'), w, self.ctx)
+        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core.sockstr('tcp://127.0.0.1:10000'), w, self.ctx)
 
         self.assertEqual(m.address, 'tcp://*:10000')
 
     def test_sockets_are_initially_none(self):
         w = Wallet()
-        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10000'), w, self.ctx)
+        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core.sockstr('tcp://127.0.0.1:10000'), w, self.ctx)
 
         self.assertIsNone(m.socket)
 
     def test_setup_frontend_creates_socket(self):
         w = Wallet()
-        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10000'), w, self.ctx)
+        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core.sockstr('tcp://127.0.0.1:10000'), w, self.ctx)
         m.setup_socket()
 
         self.assertEqual(m.socket.type, zmq.ROUTER)
@@ -45,7 +44,7 @@ class TestAsyncServer(TestCase):
 
     def test_sending_message_returns_it(self):
         w = Wallet()
-        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10000'), w, self.ctx, linger=500, poll_timeout=500)
+        m = cilantro_ee.protocol.services.async.AsyncInbox(cilantro_ee.protocol.services.core.sockstr('tcp://127.0.0.1:10000'), w, self.ctx, linger=500, poll_timeout=500)
 
         async def get(msg):
             socket = self.ctx.socket(zmq.DEALER)

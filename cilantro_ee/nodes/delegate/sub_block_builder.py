@@ -50,7 +50,6 @@ import os
 import capnp
 from decimal import Decimal
 import json
-from cilantro_ee.protocol.services import services
 
 blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
@@ -63,7 +62,7 @@ async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
     find_message = ['find', vk]
     find_message = json.dumps(find_message).encode()
 
-    node_ip = await cilantro_ee.protocol.services.reqrep.get(cilantro_ee.protocol.services.core._socket('tcp://127.0.0.1:10002'),
+    node_ip = await cilantro_ee.protocol.services.reqrep.get(cilantro_ee.protocol.services.core.sockstr('tcp://127.0.0.1:10002'),
                                                              msg=find_message,
                                                              ctx=ctx,
                                                              timeout=3000)
@@ -75,7 +74,7 @@ async def resolve_vk(vk: str, ctx: zmq.Context, port: 9999):
     if ip is not None:
         # Got the ip! Check if it is a tcp string or just an IP. This should be fixed later
         if cilantro_ee.protocol.services.core.SocketStruct.is_valid(ip):
-            s = cilantro_ee.protocol.services.core._socket(ip)
+            s = cilantro_ee.protocol.services.core.sockstr(ip)
             s.port = port
         else:
             # Just an IP...
@@ -265,6 +264,7 @@ class SubBlockBuilder(Worker):
                 num_discards = num_discards + 1
         return num_discards
 
+    # Put this on the work manager
     def align_input_hashes(self, aih: AlignInputHash):
         self.log.notice("Discarding all pending sub blocks and aligning input hash to {}".format(aih.input_hash))
         self.client.flush_all()
@@ -283,6 +283,7 @@ class SubBlockBuilder(Worker):
             self.sb_managers[smi].pending_txs.insert_front(ih, txs_bag)
         # self._make_next_sb()
 
+    # Maybe put this on the work manager
     def _fail_block(self, fbn: FailedBlockNotification):
         self.log.notice("FailedBlockNotification - aligning input hashes")
 
@@ -334,6 +335,7 @@ class SubBlockBuilder(Worker):
                 raise Exception("SBB got message type {} from IPC dealer socket that it does not know how to handle"
                                 .format(type(msg)))
 
+    # ???
     def send_workload_signal(self):
         # Create Signal
         if self.num_txn_bags == 0:
@@ -568,7 +570,14 @@ class SubBlockBuilder(Worker):
     def _execute_input_bag(self, input_hash: bytes, tx_batch, sb_idx: int):
         return self._execute_sb(input_hash, tx_batch, tx_batch.timestamp, sb_idx)
 
-    def _make_next_sb(self):
+    def _make_next_sub_block(self):
+        if not self.startup:
+            self.log.info("Merge pending db to master db")
+            self.client.update_master_db()
+        else:
+            self.startup = False
+            time.sleep(2)
+
         self.log.info('making next sb')
         if not self.move_next_block_to_make():
             self.log.info("Not ready to make next sub-block. Waiting for seneca-client to be ready ... ")
@@ -578,14 +587,17 @@ class SubBlockBuilder(Worker):
         cur_block_index = self._next_block_to_make.next_block_index
         self.log.info('Working on {}'.format(cur_block_index))
 
+        # why does this exist
         sm_idx_start = cur_block_index * NUM_SB_PER_BLOCK_PER_BUILDER
 
+        # if we iterate through all the subblocks
         for i in range(NUM_SB_PER_BLOCK_PER_BUILDER):
             sm_idx = sm_idx_start + i
 
-            if sm_idx >= len(self.sb_managers):    # out of range already
+            if sm_idx >= len(self.sb_managers):  # out of range already
                 self.log.info("Uneven sub-blocks per block. May not work seneca clients properly in current scheme")
-                self.log.info("i {} num_sb_pb_pb {} num_sb_mgrs {} sm_idx {}".format(i, NUM_SB_PER_BLOCK_PER_BUILDER, len(self.sb_managers), sm_idx))
+                self.log.info("i {} num_sb_pb_pb {} num_sb_mgrs {} sm_idx {}".format(i, NUM_SB_PER_BLOCK_PER_BUILDER,
+                                                                                     len(self.sb_managers), sm_idx))
                 return
 
             if len(self.sb_managers[sm_idx].to_finalize_txs) > NUM_CACHES:
@@ -610,13 +622,3 @@ class SubBlockBuilder(Worker):
                 timestamp = float(time.time())
                 input_hash = self.sb_managers[sm_idx].get_empty_input_hash()
                 self._execute_sb(input_hash, self._empty_txn_batch, timestamp, sb_index)
-
-    def _make_next_sub_block(self):
-        if not self.startup:
-            self.log.info("Merge pending db to master db")
-            self.client.update_master_db()
-        else:
-            self.startup = False
-            time.sleep(2)
-
-        self._make_next_sb()

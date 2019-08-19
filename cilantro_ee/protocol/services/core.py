@@ -56,7 +56,7 @@ class Protocols:
     PROTOCOL_STRINGS = ['tcp://', 'inproc://', 'icp://']
 
 
-def _socket(s: str):
+def sockstr(s: str):
     return SocketStruct.from_string(s)
 
 

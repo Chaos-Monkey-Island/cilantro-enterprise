@@ -414,6 +414,7 @@ class BlockAggregator(Worker):
         self.log.debugv("MN got fail block notification: {}".format(notif))
         # TODO implement
 
+
     async def schedule_block_timeout(self):
         try:
             elapsed = 0
@@ -438,6 +439,7 @@ class BlockAggregator(Worker):
             self.cur_quorum = min(self.cur_quorum + num_delegates_joined, self.max_quorum)
         except asyncio.CancelledError:
             pass
+
 
     def _reset_curr_block(self):
         self.curr_block.reset()

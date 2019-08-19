@@ -101,7 +101,7 @@ class PeerServer(services.reqrep.RequestReplyService):
 
         if vk not in result or result[vk] != ip:
             # Ping discovery server
-            _, responded_vk = await discovery.ping(services.core._socket(ip),
+            _, responded_vk = await discovery.ping(services.core.sockstr(ip),
                                                    pepper=PEPPER.encode(), ctx=self.ctx, timeout=1000)
 
             await asyncio.sleep(0)
@@ -119,7 +119,7 @@ class PeerServer(services.reqrep.RequestReplyService):
 
                 second_msg = json.dumps({'event': 'node_online',
                                          'vk': vk,
-                                         'ip': services.core._socket(ip).id},
+                                         'ip': services.core.sockstr(ip).id},
                                         cls=services.core.SocketEncoder).encode()
                 await self.event_publisher.send(second_msg)
 

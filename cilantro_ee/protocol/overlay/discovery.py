@@ -1,7 +1,6 @@
 import zmq.asyncio
 
-import cilantro_ee.protocol.services.core
-import cilantro_ee.protocol.services.reqrep
+from cilantro_ee.protocol import services
 from cilantro_ee.logger.base import get_logger
 from cilantro_ee.protocol.wallet import Wallet, _verify
 import asyncio
@@ -13,8 +12,8 @@ Returns a message of the signed pepper and VK
 '''
 
 
-class DiscoveryServer(cilantro_ee.protocol.services.reqrep.RequestReplyService):
-    def __init__(self, socket_id: cilantro_ee.protocol.services.core.SocketStruct, wallet: Wallet, pepper: bytes, ctx=zmq.asyncio.Context(),
+class DiscoveryServer(services.reqrep.RequestReplyService):
+    def __init__(self, socket_id: services.core.SocketStruct, wallet: Wallet, pepper: bytes, ctx=zmq.asyncio.Context(),
                  linger=2000, poll_timeout=500):
 
         super().__init__(socket_id=socket_id, wallet=wallet, ctx=ctx, linger=linger, poll_timeout=poll_timeout)
@@ -39,9 +38,9 @@ def unpack_pepper_msg(msg: bytes):
     return msg[:32], msg[32:]
 
 
-async def ping(socket_id: cilantro_ee.protocol.services.core.SocketStruct, pepper: bytes, ctx: zmq.Context, timeout):
+async def ping(socket_id: services.core.SocketStruct, pepper: bytes, ctx: zmq.Context, timeout):
     log.info('Timeout: {}'.format(timeout))
-    response = await cilantro_ee.protocol.services.reqrep.get(socket_id=socket_id, msg=b'', ctx=ctx, timeout=timeout)
+    response = await services.reqrep.get(socket_id=socket_id, msg=b'', ctx=ctx, timeout=timeout)
 
     log.info('Got response: {}'.format(response))
 
