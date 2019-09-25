@@ -15,13 +15,13 @@ from cilantro_ee.messages import capnp as schemas
 import os
 import capnp
 import notification_capnp
+import blockdata_capnp
 
 from cilantro_ee.messages.message import MessageTypes
 
 
 from cilantro_ee.core.nonces import NonceManager
 
-blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
 
 IDX_REPLY_TIMEOUT = 20

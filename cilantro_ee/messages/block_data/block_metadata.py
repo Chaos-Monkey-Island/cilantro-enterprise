@@ -2,8 +2,13 @@ from cilantro_ee.messages.block_data.block_data import BlockData
 from cilantro_ee.messages.block_data.sub_block import SubBlock
 from typing import List
 
+from cilantro_ee.messages import capnp as schemas
+import os
 import capnp
 import blockdata_capnp
+import subblock_capnp
+import transaction_capnp
+import signal_capnp
 
 
 class BlockMetaData(BlockData):

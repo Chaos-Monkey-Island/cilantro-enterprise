@@ -1,11 +1,11 @@
 from enum import IntEnum, auto, unique
 
+
 @unique
 class MessageBaseType(IntEnum):
     def _generate_next_value_(name, start, count, last_values):
         assert count < 128, "Exceeds the maximum supported message types"
         return 2 * count
-
 
 
 class MessageType(MessageBaseType):
@@ -25,3 +25,10 @@ class MessageType(MessageBaseType):
     BURN_INPUT_HASHES = auto()
 
     TRANSACTION_BATCH = auto()
+
+    LATEST_BLOCK_HEIGHT_REQUEST = auto()
+    LATEST_BLOCK_HASH_REQUEST = auto()
+    LATEST_BLOCK_HASH_REPLY = auto()
+    LATEST_BLOCK_HEIGHT_REPLY = auto()
+
+    BAD_REQUEST = auto()

@@ -38,9 +38,9 @@ import asyncio, zmq, time, random
 from cilantro_ee.messages import capnp as schemas
 import os
 import capnp
-import notification_capnp
 
-blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
+notification_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/notification.capnp')
+import blockdata_capnp
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
 transaction_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/transaction.capnp')
 signal_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/signals.capnp')

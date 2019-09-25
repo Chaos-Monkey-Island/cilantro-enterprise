@@ -12,6 +12,7 @@ import zmq
 import asyncio
 import json
 
+
 async def stop_server(s, timeout):
     await asyncio.sleep(timeout)
     s.stop()
@@ -32,13 +33,13 @@ class TestBlockServer(TestCase):
             socket = self.ctx.socket(zmq.DEALER)
             socket.connect('tcp://127.0.0.1:10000')
 
-            await socket.send(b'0'+msg[1])
+            await socket.send(msg[0] + msg[1])
 
             res = await socket.recv()
 
             return res
 
-        message = Message.get_signed_message_packed(signee=w.sk.encode(), msg_type=MessageType.BLOCK_DATA_REQUEST, blockNum=100, sign=wallet.sign)
+        message = Message.get_signed_message_packed(signee=w.sk.encode(), msg_type=MessageType.BLOCK_DATA_REQUEST, blockNum=100)
         print(message)
 
         tasks = asyncio.gather(

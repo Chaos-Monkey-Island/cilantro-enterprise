@@ -5,7 +5,7 @@ import capnp
 import os
 from cilantro_ee.messages import capnp as schemas
 
-blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
+import blockdata_capnp
 
 PENDING_REWARDS_KEY = '__rewards'
 

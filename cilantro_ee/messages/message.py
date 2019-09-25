@@ -1,3 +1,5 @@
+
+
 class MessageTypes:
     MAKE_NEXT_BLOCK = b'\x00'
     PENDING_TRANSACTIONS = b'\x01'

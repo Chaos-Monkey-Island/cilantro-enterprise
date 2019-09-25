@@ -20,12 +20,13 @@ import math, asyncio, zmq, time
 from cilantro_ee.messages import capnp as schemas
 import os
 import capnp
-import notification_capnp
+
 import hashlib
 
-blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
+import blockdata_capnp
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
 signal_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/signals.capnp')
+notification_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/notification.capnp')
 
 
 class BlockAggregator(Worker):
@@ -299,7 +300,9 @@ class BlockAggregator(Worker):
             self.log.info("Storing a block: {}".format(self.curr_block_hash))
 
             #try:
+
             block_data = self.driver.store_block(sb_data)
+
             self.log.debug(block_data)
 
             assert block_data.prevBlockHash == self.curr_block_hash, \

@@ -48,12 +48,12 @@ import hashlib
 from cilantro_ee.messages import capnp as schemas
 import os
 import capnp
-import notification_capnp
 from decimal import Decimal
 
 from cilantro_ee.core.nonces import NonceManager
 
-blockdata_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/blockdata.capnp')
+notification_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/notificaiton.capnp')
+import blockdata_capnp
 subblock_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/subblock.capnp')
 transaction_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/transaction.capnp')
 signal_capnp = capnp.load(os.path.dirname(schemas.__file__) + '/signals.capnp')

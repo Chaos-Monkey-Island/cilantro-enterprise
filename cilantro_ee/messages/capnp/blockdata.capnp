@@ -1,4 +1,4 @@
-@0xc9a01417cf45e892;
+@0xda0328d77fef6562;
 
 using SB = import "subblock.capnp";
 
@@ -38,4 +38,24 @@ struct StateUpdateReply {
 
 struct BlockDataRequest {
     blockNum @0: UInt32;
+}
+
+struct LatestBlockHeightRequest {
+    timestamp @0 :UInt64;
+}
+
+struct LatestBlockHashRequest {
+    timestamp @0 :UInt64;
+}
+
+struct LatestBlockHeightReply {
+    blockHeight @0: UInt32;
+}
+
+struct LatestBlockHashRequest {
+    blockHash @0: Data;
+}
+
+struct BadRequest {
+    timestamp @0: UInt64;
 }
