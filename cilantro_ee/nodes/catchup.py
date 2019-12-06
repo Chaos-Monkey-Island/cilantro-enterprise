@@ -332,7 +332,7 @@ class CatchupManager:
     def _recv_blk_notif(self, update):
         # can get any time - hopefully one incremental request, how do you handle it in all cases?
         nw_blk_num = update.blockNum
-        if self.is_caught_up:
+        if self.is_caught_up: # is caught up is current height - block notif height = -1
             self.curr_hash = self.state.latest_block_hash
             self.curr_num = self.state.latest_block_num
             self.target_blk_num = self.curr_num
@@ -371,26 +371,11 @@ class CatchupManager:
                              msg_type=msg_type,
                              msg=msg)
 
-    # MASTER ONLY CALL
-    def recv_block_data_req(self, sender: bytes, req):
-        block_num = req.blockNum
-        blk_dict = self.driver.get_block(block_num)
-
-        self.log.info(blk_dict)
-
-        if '_id' in blk_dict:
-            del blk_dict['_id']
-
-        msg_type, msg = Message.get_message_packed(
-                                      MessageType.BLOCK_DATA_REPLY,
-                                      **blk_dict)
-
-        self.router.send_msg(sender, msg=msg, msg_type=msg_type)
-
     def get_idx_list(self, vk, latest_blk_num, sender_bhash):
         # check if requester is master or del
         self.log.info(sender_bhash)
-        valid_node = vk.decode() in PhoneBook.state_sync
+        core_nodes = self.vkbook.masternodes + self.vkbook.delegates
+        valid_node = vk.decode() in core_nodes
 
         if valid_node:
 
