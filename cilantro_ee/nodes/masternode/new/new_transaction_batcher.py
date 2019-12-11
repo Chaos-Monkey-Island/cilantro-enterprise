@@ -1,7 +1,7 @@
 from cilantro_ee.protocol.comm.services import AsyncInbox
 from cilantro_ee.core.messages.message import Message
 from cilantro_ee.core.messages.message_type import MessageType
-from cilantro_ee.protocol.transaction import transaction_is_valid, TransactionException
+from cilantro_ee.core.utils.transaction import transaction_is_valid, TransactionException
 import time
 import asyncio
 import hashlib

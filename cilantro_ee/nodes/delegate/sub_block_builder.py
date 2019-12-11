@@ -404,6 +404,7 @@ class SubBlockMaker:
         environment = {
             'block_hash': block_hash,
             'block_num': block_num,
+            '__input_hash': input_hash,
             'now': dt_object
         }
 
