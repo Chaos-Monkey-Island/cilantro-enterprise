@@ -1,7 +1,6 @@
 from contracting.execution.executor import Executor
-from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting.stdlib.bridge.time import Datetime
-from contracting.db.encoder import decode
+from contracting.db.encoder import decode, encode
 
 from cilantro_ee.canonical import build_sbc_from_work_results
 
@@ -27,6 +26,8 @@ def execute_tx(executor: Executor, transaction, environment: dict={}):
         environment=environment,
         auto_commit=False
     )
+
+    print(output)
 
     # Encode deltas into a Capnp struct
     deltas = [transaction_capnp.Delta.new_message(key=k, value=v) for k, v in output['writes'].items()]

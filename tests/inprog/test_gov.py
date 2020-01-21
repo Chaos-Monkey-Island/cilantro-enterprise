@@ -22,7 +22,7 @@ class TestGovernance(TestCase):
             await make_start_awaitable(mns, dls)
             await send_tx(mns[1], mns + dls,
                           contract='election_house',
-                          function='vote_policy',
+                          function='vote',
                           kwargs={
                               'policy': 'masternodes', 'value': ('introduce_motion', 2)
                           },

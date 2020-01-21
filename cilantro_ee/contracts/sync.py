@@ -1,6 +1,7 @@
 import glob
 import os
 from contracting.client import ContractingClient
+from contracting.db.encoder import decode
 from contracting.db.driver import ContractDriver
 from cilantro_ee.constants import conf
 import cilantro_ee
@@ -172,3 +173,20 @@ def submit_node_election_contracts(initial_masternodes, boot_mns, initial_delega
         'policy': 'delegates',
         'cost': delegate_price,
     })
+
+
+def submit_seed_transactions(filename, client=ContractingClient()):
+    genesis_sender = (b'\x00' * 32).hex()
+
+    with open(filename) as f:
+        genesis = json.load(f)
+
+    for transaction in genesis['transactions']:
+        client.executor.execute(
+            genesis_sender,
+            contract_name=transaction['contract'],
+            function_name=transaction['function'],
+            kwargs=transaction['kwargs'],
+            auto_commit=True,
+            metering=False,
+        )

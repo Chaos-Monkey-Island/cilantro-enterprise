@@ -22,5 +22,22 @@
 			"owner": "election_house",
 			"constructor_args": null
 		}
+	],
+	"transactions": [
+		{
+			"contract": "election_house",
+			"function": "register_policy",
+			"kwargs": {
+              "contract": "masternodes"
+            }
+		},
+        {
+			"contract": "election_house",
+			"function": "register_policy",
+			"kwargs": {
+              "contract": "delegates"
+            }
+		}
+
 	]
 }

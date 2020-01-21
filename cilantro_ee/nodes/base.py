@@ -31,6 +31,7 @@ class Node:
             boot_dels=constitution['delegate_min_quorum'],
             client=self.client
         )
+        sync.submit_seed_transactions(cilantro_ee.contracts.__path__[0] + '/genesis.json', client=self.client)
 
         self.contacts = VKBook(boot_mn=constitution['masternode_min_quorum'],
                                boot_del=constitution['delegate_min_quorum'],

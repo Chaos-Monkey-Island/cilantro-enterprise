@@ -37,7 +37,7 @@ def current_value():
 
 @export
 def vote(vk, obj):
-    assert type(obj) == tuple, 'Pass a tuple!'
+    assert type(obj) == list, 'Pass a list!'
 
     arg = None
     try:

@@ -29,6 +29,7 @@ def make_ipc(p):
 class MockDB:
     def __init__(self):
         self.d = {}
+        self.writes = {}
 
     def exists(self, key):
         return not self.d.get(key) is None
@@ -40,8 +41,10 @@ class MockDB:
     def set(self, key, value):
         v = encode(value)
         self.d[key] = v
+        self.writes[key] = v
 
     def iter(self, prefix):
+        print(self.d.keys())
         return [k for k in self.d.keys() if k.startswith(prefix)]
 
 
@@ -54,10 +57,24 @@ class IsolatedDriver(BlockchainDriver):
         return self.db.get(key)
 
     def set(self, key, value):
+        if type(key) == bytes:
+            key = key.decode()
         self.db.set(key, value)
 
     def commit(self):
         pass
+
+    def pop_writes(self):
+        writes = {}
+        for key, value in self.db.writes.items():
+            if value == 'null':
+                writes[key] = None
+            else:
+                writes[key] = value
+
+        self.db.writes.clear()
+
+        return writes
 
 
 def make_network(masternodes, delegates, ctx):
@@ -135,13 +152,13 @@ def make_start_awaitable(mns, dls):
     return asyncio.gather(*coros)
 
 
-def make_tx_packed(processor, contract_name, function_name, sender=Wallet(), kwargs={}, drivers=[]):
+def make_tx_packed(processor, contract_name, function_name, sender=Wallet(), kwargs={}, drivers=[], stamps=1_000_000):
     batch = TransactionBuilder(
         sender=sender.verifying_key(),
         contract=contract_name,
         function=function_name,
         kwargs=kwargs,
-        stamps=10000,
+        stamps=stamps,
         processor=processor,
         nonce=0
     )
@@ -159,13 +176,13 @@ def make_tx_packed(processor, contract_name, function_name, sender=Wallet(), kwa
                                        sender.verifying_key().hex())
 
     for driver in drivers:
-        driver.set(balances_key, 1_000_000)
+        driver.set(balances_key, stamps * 2)
         driver.commit()
 
     return b
 
 
-async def send_tx(masternode: Masternode, nodes, contract, function, sender=Wallet(), kwargs={}, sleep=2):
+async def send_tx(masternode: Masternode, nodes, contract, function, sender=Wallet(), kwargs={}, sleep=2, stamps=1_000_000):
     async with aiohttp.ClientSession() as session:
         r = await session.post(
             url=f'http://127.0.0.1:{masternode.webserver.port}/',
