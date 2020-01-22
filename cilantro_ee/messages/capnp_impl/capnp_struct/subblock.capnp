@@ -39,6 +39,7 @@ struct SubBlockContender {
     signer @3 :Data;
     subBlockNum @4: UInt8;
     prevBlockHash @5: Data;
+    blockNum @6: UInt64;
 }
 
 struct SubBlockContenders {

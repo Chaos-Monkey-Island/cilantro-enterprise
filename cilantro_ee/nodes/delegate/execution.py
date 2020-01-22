@@ -27,8 +27,6 @@ def execute_tx(executor: Executor, transaction, environment: dict={}):
         auto_commit=False
     )
 
-    print(output)
-
     # Encode deltas into a Capnp struct
     deltas = [transaction_capnp.Delta.new_message(key=k, value=v) for k, v in output['writes'].items()]
     tx_output = transaction_capnp.TransactionData.new_message(
@@ -70,6 +68,8 @@ def execute_work(executor, driver, work, wallet, previous_block_hash, parallelis
     subblocks = []
     i = 0
 
+    print(previous_block_hash)
+
     while len(work) > 0:
         _, tx_batch = heapq.heappop(work)
 
@@ -86,7 +86,8 @@ def execute_work(executor, driver, work, wallet, previous_block_hash, parallelis
             results=results,
             sb_num=i % parallelism,
             wallet=wallet,
-            previous_block_hash=previous_block_hash
+            previous_block_hash=previous_block_hash,
+            block_num=driver.latest_block_num + 1
         )
 
         subblocks.append(sbc)

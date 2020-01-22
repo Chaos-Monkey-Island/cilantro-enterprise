@@ -124,11 +124,12 @@ class Masternode(Node):
             await asyncio.sleep(0)
 
     def process_block(self, block):
+        self.log.error(block)
         do_not_store = canonical.block_is_failed(block, self.driver.latest_block_hash, self.driver.latest_block_num + 1)
         do_not_store |= canonical.block_is_skip_block(block)
 
         #if not do_not_store:
-        if block['blockNum'] != self.driver.latest_block_num:
+        if block['blockNum'] > self.driver.latest_block_num:
             self.driver.update_with_block(block)
 
             # ISSUE REWARDS

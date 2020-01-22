@@ -318,9 +318,7 @@ class TestTotalEndToEnd(TestCase):
                 r = await session.post('http://127.0.0.1:8081/', data=make_tx_packed(mnw2.verifying_key(), 'testing', 'test', drivers=[md1, md2, dd1, dd2]))
 
             res = await r.json()
-            print(res)
-            #self.assertEqual(res['success'], 'Transaction successfully submitted to the network.')
-            await asyncio.sleep(10)
+            await asyncio.sleep(2)
             mn1.stop()
             mn2.stop()
             d1.stop()

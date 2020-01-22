@@ -1,5 +1,6 @@
 from contracting.client import ContractingClient
 from contracting.db.driver import ContractDriver
+from contracting.db.encoder import decode
 import capnp
 import os
 from cilantro_ee.messages.capnp_impl import capnp_struct as schemas
@@ -28,12 +29,13 @@ class RewardManager:
         master_ratio, delegate_ratio, burn_ratio, foundation_ratio = self.reward_ratio
         pending_rewards = self.get_pending_rewards()
 
+
         masters = self.vkbook.masternodes
         delegates = self.vkbook.delegates
 
         master_reward = (master_ratio * pending_rewards) / len(masters)
         delegate_reward = (delegate_ratio * pending_rewards) / len(delegates)
-        foundation_reward = foundation_ratio * pending_rewards
+        #foundation_reward = foundation_ratio * pending_rewards
         # BURN + DEVELOPER
 
         for m in masters:
@@ -50,6 +52,9 @@ class RewardManager:
         if current_balance is None:
             current_balance = 0
 
+        if type(current_balance) == bytes:
+            current_balance = decode(current_balance)
+
         self.currency_contract.quick_write(variable='balances', key=vk, value=amount + current_balance)
 
     def get_pending_rewards(self):
@@ -57,6 +62,9 @@ class RewardManager:
 
         if key is None:
             key = 0
+
+        if type(key) == bytes:
+            key = decode(key)
 
         return key
 
@@ -81,8 +89,8 @@ class RewardManager:
     def stamps_in_subblock(subblock):
         total = 0
 
-        for tx in subblock.transactions:
-            total += tx.stampsUsed
+        for tx in subblock['transactions']:
+            total += tx['stampsUsed']
 
         return total
 

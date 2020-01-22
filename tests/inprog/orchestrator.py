@@ -35,16 +35,26 @@ class MockDB:
         return not self.d.get(key) is None
 
     def get(self, key):
+        try:
+            key = key.encode()
+        except:
+            pass
+
         val = self.d.get(key)
         return decode(val)
 
     def set(self, key, value):
-        v = encode(value)
-        self.d[key] = v
-        self.writes[key] = v
+        value = encode(value)
+        try:
+            key = key.encode()
+            value = value.encode()
+        except:
+            pass
+        self.d[key] = value
+        self.writes[key] = value
 
     def iter(self, prefix):
-        print(self.d.keys())
+        prefix = prefix.encode()
         return [k for k in self.d.keys() if k.startswith(prefix)]
 
 

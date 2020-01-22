@@ -39,7 +39,7 @@ class BlockchainDriver(ContractDriver):
         v = int(v)
         assert v >= 0, 'Block number must be positive integer.'
 
-        v = str(v).encode()
+        # v = str(v).encode()
 
         self.set(BLOCK_NUM_KEY, v)
 

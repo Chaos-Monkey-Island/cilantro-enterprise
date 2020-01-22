@@ -67,9 +67,9 @@ class Delegate(Node):
             self.driver.update_with_block(nbn)
 
             # ISSUE REWARDS
-            stamps = self.reward_manager.stamps_in_block(nbn)
-            self.log.info(f'{stamps} in this block to issue.')
-            self.reward_manager.set_pending_rewards(stamps)
+            for sb in nbn['subBlocks']:
+                self.reward_manager.add_pending_rewards(sb)
+
             self.reward_manager.issue_rewards()
 
         self.nbn_inbox.clean()
@@ -101,6 +101,7 @@ class Delegate(Node):
         return self.filter_work(work)
 
     def process_work(self, filtered_work):
+        self.log.info(filtered_work)
         results = execution.execute_work(
             executor=self.executor,
             driver=self.driver,

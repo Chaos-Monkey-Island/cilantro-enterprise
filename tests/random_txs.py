@@ -44,7 +44,7 @@ def random_packed_tx(nonce=0, processor=None, give_stamps=False):
     #tx.proof = b'\x00' * 32
     #tx.proof_generated = True
 
-    packed_tx = transaction_capnp.Transaction.from_bytes_packed(tx.serialize())
+    packed_tx = transaction_capnp.NewTransaction.from_bytes_packed(tx.serialize())
     return packed_tx
 
 
