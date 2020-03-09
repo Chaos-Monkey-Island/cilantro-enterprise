@@ -16,7 +16,7 @@ class PeerServer(AsyncInbox):
     def __init__(self, socket_id: struct.SocketStruct,
                  event_address: struct.SocketStruct,
                  table: dict, wallet: Wallet, ctx=zmq.Context,
-                 linger=500, poll_timeout=10, debug=False):
+                 linger=500, poll_timeout=50, debug=True):
 
         super().__init__(socket_id=socket_id,
                          wallet=wallet,
@@ -53,11 +53,13 @@ class PeerServer(AsyncInbox):
             response = self.get_vk(args)
             response = json.dumps(response, cls=struct.SocketEncoder).encode()
             await self.return_msg(_id, response)
-        elif command == 'join':
+            return
+        if command == 'join':
             vk, ip = args  # unpack args
             asyncio.ensure_future(self.handle_join(vk, ip))
-            return None
-        elif command == 'ask':
+            await self.return_msg(_id, json.dumps('ok').encode())
+        if command == 'ask':
+            self.log.info(self.table)
             await self.return_msg(_id, json.dumps(self.table, cls=struct.SocketEncoder).encode())
 
     async def handle_join(self, vk, ip):

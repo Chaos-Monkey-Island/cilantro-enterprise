@@ -68,10 +68,10 @@ class TestNetworkService(TestCase):
                      _socket('tcp://127.0.0.1:12999'),
                      _socket('tcp://127.0.0.1:13999')]
 
-        d1 = DiscoveryServer(bootnodes[0], w1, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
-        d2 = DiscoveryServer(bootnodes[1], w2, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
-        d3 = DiscoveryServer(bootnodes[2], w3, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
-        d4 = DiscoveryServer(bootnodes[3], w4, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
+        d1 = DiscoveryServer(socket_id=bootnodes[0], wallet=w1, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
+        d2 = DiscoveryServer(socket_id=bootnodes[1], wallet=w2, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
+        d3 = DiscoveryServer(socket_id=bootnodes[2], wallet=w3, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
+        d4 = DiscoveryServer(socket_id=bootnodes[3], wallet=w4, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000, poll_timeout=1000)
 
         n = Network(wallet=w, ctx=self.ctx, bootnodes=bootnodes)
 
@@ -113,10 +113,14 @@ class TestNetworkService(TestCase):
                      _socket('ipc:///tmp/n3/discovery'),
                      _socket('ipc:///tmp/n4/discovery')]
 
-        d1 = DiscoveryServer(bootnodes[0], w1, pepper=PEPPER.encode(), ctx=self.ctx, linger=200, poll_timeout=200)
-        d2 = DiscoveryServer(bootnodes[1], w2, pepper=PEPPER.encode(), ctx=self.ctx, linger=200, poll_timeout=200)
-        d3 = DiscoveryServer(bootnodes[2], w3, pepper=PEPPER.encode(), ctx=self.ctx, linger=200, poll_timeout=200)
-        d4 = DiscoveryServer(bootnodes[3], w4, pepper=PEPPER.encode(), ctx=self.ctx, linger=200, poll_timeout=200)
+        d1 = DiscoveryServer(socket_id=bootnodes[0], wallet=w1, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000,
+                             poll_timeout=1000)
+        d2 = DiscoveryServer(socket_id=bootnodes[1], wallet=w2, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000,
+                             poll_timeout=1000)
+        d3 = DiscoveryServer(socket_id=bootnodes[2], wallet=w3, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000,
+                             poll_timeout=1000)
+        d4 = DiscoveryServer(socket_id=bootnodes[3], wallet=w4, pepper=PEPPER.encode(), ctx=self.ctx, linger=1000,
+                             poll_timeout=1000)
 
         n = Network(wallet=w, ctx=self.ctx, bootnodes=bootnodes)
 

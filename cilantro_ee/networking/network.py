@@ -148,12 +148,15 @@ class Network:
             master_socket, msg=join_msg, timeout=1000
         )
 
+
         # Ask for the current people online
         ask_message = ['ask', '']
         ask_msg = json.dumps(ask_message).encode()
 
+        self.log.info(f'Sending {ask_msg} for {str(master_socket)}')
+
         resp = await self.outbox.get(
-            master_socket, msg=ask_msg, timeout=1000
+            master_socket, msg=ask_msg, timeout=5000
         )
 
         contacts = json.loads(resp)
