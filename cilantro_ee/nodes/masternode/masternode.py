@@ -8,7 +8,7 @@ from cilantro_ee.nodes.masternode.webserver import WebServer
 from cilantro_ee.nodes.masternode.block_contender import Aggregator
 from cilantro_ee.networking.parameters import ServiceType
 from cilantro_ee.crypto import canonical
-
+from cilantro_ee.sockets.services import Outbox
 from cilantro_ee.nodes.base import Node
 
 
@@ -42,6 +42,7 @@ class Masternode(Node):
 
         # Network upgrade flag
         self.active_upgrade = False
+        self.outbox = Outbox(self.ctx)
 
     async def start(self):
         await super().start()
@@ -90,12 +91,18 @@ class Masternode(Node):
             await self.parameters.refresh()
             msg = canonical.dict_to_msg_block(canonical.get_genesis_block())
 
-            sends = await secure_multicast(
+            sends = await self.outbox.secure_multicast(
                 wallet=self.wallet,
-                ctx=self.ctx,
                 msg=msg,
                 peers=self.nbn_sks()
             )
+
+            # sends = await secure_multicast(
+            #     wallet=self.wallet,
+            #     ctx=self.ctx,
+            #     msg=msg,
+            #     peers=self.nbn_sks()
+            # )
 
             self.log.info(f'{sends}')
 
@@ -139,12 +146,18 @@ class Masternode(Node):
             self.log.error('No one online!')
             return
 
-        return await secure_multicast(
+        return await self.outbox.secure_multicast(
             wallet=self.wallet,
-            ctx=self.ctx,
             msg=tx_batch,
             peers=self.dl_wk_sks()
         )
+
+        # return await secure_multicast(
+        #     wallet=self.wallet,
+        #     ctx=self.ctx,
+        #     msg=tx_batch,
+        #     peers=self.dl_wk_sks()
+        # )
 
         # return await multicast(self.ctx, tx_batch, self.delegate_work_sockets())  # Works
 
@@ -217,12 +230,18 @@ class Masternode(Node):
             await self.wait_for_work(block)
 
             # Pack current NBN into message
-            await secure_multicast(
+            return await self.outbox.secure_multicast(
                 wallet=self.wallet,
-                ctx=self.ctx,
                 msg=canonical.dict_to_msg_block(block),
                 peers=self.nbn_sks()
             )
+            #
+            # await secure_multicast(
+            #     wallet=self.wallet,
+            #     ctx=self.ctx,
+            #     msg=canonical.dict_to_msg_block(block),
+            #     peers=self.nbn_sks()
+            # )
 
             # await multicast(self.ctx, canonical.dict_to_msg_block(block), self.nbn_sockets())
 

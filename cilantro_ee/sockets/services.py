@@ -27,11 +27,8 @@ class Outbox:
 
         return socket
 
-    async def get(self, socket_id, msg, timeout=1000, linger=500):
-        socket = self.ctx.socket(zmq.DEALER)
-        socket.connect(str(socket_id))
-        socket.setsockopt(zmq.LINGER, linger)
-        print(socket)
+    async def get(self, socket_id, msg, _type=zmq.DEALER, timeout=1000):
+        socket = self.get_socket(str(socket_id), _type=_type)
         await socket.send(msg)
 
         event = await socket.poll(timeout=timeout, flags=zmq.POLLIN)
@@ -92,6 +89,21 @@ class Outbox:
         # Otherwise, close the socket. Return result and the socket for further processing / updating sockets
         # socket.close()
         return False, evnt_dict['endpoint'].decode()
+
+    async def multicast(self, msg: bytes, peers: list):
+        return await asyncio.gather(*[self.send_out(msg, p) for p in peers])
+
+    async def secure_multicast(self, wallet, msg: bytes, peers: list, cert_dir='cilsocks'):
+        return await asyncio.gather(*[
+            secure_send_out(
+                wallet=wallet,
+                ctx=self.ctx,
+                msg=msg,
+                socket_id=peer[1],
+                server_vk=peer[0],
+                cert_dir=cert_dir
+            ) for peer in peers
+        ])
 
 
 async def get(socket_id: SocketStruct, msg: bytes, ctx:zmq.Context, timeout=1000, linger=500, retries=10, dealer=True):

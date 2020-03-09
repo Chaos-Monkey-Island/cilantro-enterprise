@@ -145,7 +145,7 @@ class Network:
         self.log.info(f'Sending {join_msg} for {str(master_socket)}')
 
         await self.outbox.get(
-            master_socket, msg=join_msg, timeout=1000
+            master_socket, msg=join_msg, timeout=1000, _type=zmq.REQ
         )
 
 
@@ -156,7 +156,7 @@ class Network:
         self.log.info(f'Sending {ask_msg} for {str(master_socket)}')
 
         resp = await self.outbox.get(
-            master_socket, msg=ask_msg, timeout=5000
+            master_socket, msg=ask_msg, timeout=5000, _type=zmq.REQ
         )
 
         contacts = json.loads(resp)
@@ -186,7 +186,7 @@ class Network:
             peer = self.params.resolve(ip, service_type=ServiceType.PEER)
             self.log.error(peer)
 
-            await self.outbox.get(peer, msg=join_message, timeout=1000)
+            await self.outbox.get(peer, msg=join_message, timeout=1000, _type=zmq.REQ)
 
     async def wait_for_quorum(self, masternode_quorum_required: int,
                                     delegate_quorum_required: int,
@@ -279,11 +279,11 @@ class Network:
         else:
             find_message = ['find', vk_to_find]
             find_message = json.dumps(find_message, cls=struct.SocketEncoder).encode()
-            response = await self.outbox.get(client_address, msg=find_message, timeout=1000)
+            response = await self.outbox.get(client_address, msg=find_message, timeout=1000, _type=zmq.REQ)
 
             join_message = ['join', (self.wallet.verifying_key().hex(), self.socket_base)]
             join_msg = json.dumps(join_message).encode()
-            asyncio.ensure_future(self.outbox.get(client_address, msg=join_msg, timeout=1000))
+            asyncio.ensure_future(self.outbox.get(client_address, msg=join_msg, timeout=1000, _type=zmq.REQ))
 
             if response is None:
                 return None

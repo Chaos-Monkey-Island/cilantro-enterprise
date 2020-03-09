@@ -1,4 +1,4 @@
-from cilantro_ee.sockets.services import get
+from cilantro_ee.sockets.services import get, Outbox
 from cilantro_ee.networking.parameters import ServiceType, NetworkParameters
 import asyncio
 import zmq.asyncio
@@ -15,7 +15,8 @@ class SocketBook:
                  service_type,
                  ctx: zmq.asyncio.Context,
                  network_parameters=NetworkParameters(),
-                 phonebook_function: callable=None):
+                 phonebook_function: callable=None,
+                 outbox=None):
         # self.port = port
         self.network_parameters = network_parameters
 
@@ -25,6 +26,8 @@ class SocketBook:
         self.phonebook_function = phonebook_function
         self.sockets = {}
         self.ctx = ctx
+
+        self.outbox = outbox
 
     async def refresh(self):
         pb_nodes = set(self.phonebook_function())
