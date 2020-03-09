@@ -28,7 +28,7 @@ class Outbox:
         return socket
 
     async def get(self, socket_id, msg, timeout=1000):
-        socket = self.get_socket(socket_id, zmq.REQ)
+        socket = self.get_socket(socket_id, zmq.DEALER)
         await socket.send(msg)
 
         event = await socket.poll(timeout=timeout, flags=zmq.POLLIN)

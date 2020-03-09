@@ -49,7 +49,7 @@ async def ping(socket_id: cilantro_ee.sockets.struct.SocketStruct, pepper: bytes
     log = get_logger('Pinger')
     log.propagate = debug
     log.info(f'Pinging: {socket_id.zmq_url()}')
-    response = await services.get(socket_id=socket_id, msg=b'', ctx=ctx, timeout=timeout)
+    response = await services.get(socket_id=socket_id, msg=b'', ctx=ctx, timeout=timeout, dealer=True)
 
     log.info('Got response: {}'.format(response))
 

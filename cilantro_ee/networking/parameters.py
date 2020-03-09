@@ -205,7 +205,7 @@ class Parameters:
         find_message = ['find', node]
         find_message = json.dumps(find_message).encode()
 
-        return await get(self.peer_service_address, msg=find_message, ctx=self.ctx, timeout=1000)
+        return await get(self.peer_service_address, msg=find_message, ctx=self.ctx, timeout=1000, dealer=True)
 
     @staticmethod
     def new_nodes(phone_book_nodes, current_nodes):

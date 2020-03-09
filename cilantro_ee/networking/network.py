@@ -46,7 +46,7 @@ class Network:
 
         self.peer_service_address = self.params.resolve(socket_base, ServiceType.PEER, bind=True)
         self.event_server_address = self.params.resolve(socket_base, ServiceType.EVENT, bind=True)
-        self.peer_service = PeerServer(self.peer_service_address,
+        self.peer_service = PeerServer(socket_id=self.peer_service_address,
                                        event_address=self.event_server_address,
                                        table={
                                            self.wallet.verifying_key().hex(): socket_base
@@ -144,16 +144,16 @@ class Network:
 
         self.log.info(f'Sending {join_msg} for {str(master_socket)}')
 
-        await services.get(
-            master_socket, msg=join_msg, ctx=self.ctx, timeout=1000
+        await self.outbox.get(
+            master_socket, msg=join_msg, timeout=1000
         )
 
         # Ask for the current people online
         ask_message = ['ask', '']
         ask_msg = json.dumps(ask_message).encode()
 
-        resp = await services.get(
-            master_socket, msg=ask_msg, ctx=self.ctx, timeout=1000
+        resp = await self.outbox.get(
+            master_socket, msg=ask_msg, timeout=1000
         )
 
         contacts = json.loads(resp)
@@ -183,7 +183,7 @@ class Network:
             peer = self.params.resolve(ip, service_type=ServiceType.PEER)
             self.log.error(peer)
 
-            await services.get(peer, msg=join_message, ctx=self.ctx, timeout=1000)
+            await self.outbox.get(peer, msg=join_message, timeout=1000)
 
     async def wait_for_quorum(self, masternode_quorum_required: int,
                                     delegate_quorum_required: int,
@@ -276,11 +276,11 @@ class Network:
         else:
             find_message = ['find', vk_to_find]
             find_message = json.dumps(find_message, cls=struct.SocketEncoder).encode()
-            response = await services.get(client_address, msg=find_message, ctx=self.ctx, timeout=1000)
+            response = await self.outbox.get(client_address, msg=find_message, timeout=1000)
 
             join_message = ['join', (self.wallet.verifying_key().hex(), self.socket_base)]
             join_msg = json.dumps(join_message).encode()
-            asyncio.ensure_future(services.get(client_address, msg=join_msg, ctx=self.ctx, timeout=1000))
+            asyncio.ensure_future(self.outbox.get(client_address, msg=join_msg, timeout=1000))
 
             if response is None:
                 return None

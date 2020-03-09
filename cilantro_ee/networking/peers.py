@@ -5,7 +5,6 @@ import zmq
 
 from cilantro_ee.sockets.inbox import AsyncInbox
 from cilantro_ee.sockets import pubsub
-from cilantro_ee.sockets import reqrep
 from cilantro_ee.sockets import struct
 from cilantro_ee.crypto.wallet import Wallet
 from cilantro_ee.networking import discovery, parameters
@@ -17,7 +16,7 @@ class PeerServer(AsyncInbox):
     def __init__(self, socket_id: struct.SocketStruct,
                  event_address: struct.SocketStruct,
                  table: dict, wallet: Wallet, ctx=zmq.Context,
-                 linger=500, poll_timeout=10, debug=True):
+                 linger=500, poll_timeout=10, debug=False):
 
         super().__init__(socket_id=socket_id,
                          wallet=wallet,
@@ -47,17 +46,18 @@ class PeerServer(AsyncInbox):
     async def handle_msg(self, _id, msg):
         self.log.info(f'Got msg: {msg}')
         msg = msg.decode()
+
         command, args = json.loads(msg)
 
         if command == 'find':
             response = self.get_vk(args)
             response = json.dumps(response, cls=struct.SocketEncoder).encode()
             await self.return_msg(_id, response)
-        if command == 'join':
+        elif command == 'join':
             vk, ip = args  # unpack args
             asyncio.ensure_future(self.handle_join(vk, ip))
             return None
-        if command == 'ask':
+        elif command == 'ask':
             await self.return_msg(_id, json.dumps(self.table, cls=struct.SocketEncoder).encode())
 
     async def handle_join(self, vk, ip):

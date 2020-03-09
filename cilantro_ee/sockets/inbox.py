@@ -7,10 +7,12 @@ from cilantro_ee.sockets.struct import SocketStruct, Protocols
 
 class AsyncInbox:
     def __init__(self, socket_id: SocketStruct, ctx: zmq.Context, wallet=None, linger=1000, poll_timeout=500):
-        if socket_id.protocol == Protocols.TCP:
-            socket_id.id = '*'
+        s = SocketStruct(socket_id.protocol, socket_id.id, socket_id.port)
 
-        self.address = str(socket_id)
+        if s.protocol == Protocols.TCP:
+            s.id = '*'
+
+        self.address = str(s)
         self.wallet = wallet
 
         self.ctx = ctx

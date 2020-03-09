@@ -193,7 +193,9 @@ class TestDiscoveryServer(TestCase):
 
         wallet = Wallet()
 
-        d = DiscoveryServer(address, wallet, b'CORRECT_PEPPER', ctx=self.ctx)
+        print(address)
+        d = DiscoveryServer(socket_id=address, wallet=wallet, pepper=b'CORRECT_PEPPER', ctx=self.ctx)
+        print(address)
 
         async def stop_server(timeout):
             await asyncio.sleep(timeout)
@@ -218,9 +220,9 @@ class TestDiscoveryServer(TestCase):
         pepper = b'CORRECT_PEPPER'
         server_timeout = 0.3
 
-        servers = [DiscoveryServer(addresses[0], wallets[0], pepper, ctx=self.ctx),
-                   DiscoveryServer(addresses[1], wallets[1], pepper, ctx=self.ctx),
-                   DiscoveryServer(addresses[2], wallets[2], pepper, ctx=self.ctx)]
+        servers = [DiscoveryServer(socket_id=addresses[0], wallet=wallets[0], pepper=pepper, ctx=self.ctx),
+                   DiscoveryServer(socket_id=addresses[1], wallet=wallets[1], pepper=pepper, ctx=self.ctx),
+                   DiscoveryServer(socket_id=addresses[2], wallet=wallets[2], pepper=pepper, ctx=self.ctx)]
 
         async def stop_server(s, timeout):
             await asyncio.sleep(timeout)
